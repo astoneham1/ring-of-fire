@@ -246,7 +246,8 @@ export class Room {
         s.cup.drawn++
         draw.cupNumber = s.cup.drawn
         draw.finalCup = s.cup.drawn >= s.cup.total
-        if (draw.finalCup) draw.drinkers = this.withMates([drawerId])
+        // Downing the cup is on the drawer alone; mates don't count here.
+        if (draw.finalCup) draw.drinkers = [{ id: drawerId }]
         break
       }
       case 'master':

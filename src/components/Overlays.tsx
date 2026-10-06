@@ -68,7 +68,6 @@ export function StarterReveal({ state, you, onDone }: { state: GameState; you: s
 /** The big moment: the final King's Cup card. */
 export function FinalCup({ state, draw, you, onDone }: { state: GameState; draw: Draw; you: string; onDone: () => void }) {
   const name = nameOf(state, draw.playerId, you)
-  const mates = draw.drinkers.filter((d) => d.viaMateOf)
 
   useEffect(() => {
     vibrate([100, 60, 100, 60, 300])
@@ -109,14 +108,11 @@ export function FinalCup({ state, draw, you, onDone }: { state: GameState; draw:
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.55, type: 'spring', stiffness: 220, damping: 16 }}
       >
-        {name} {draw.playerId === you ? 'down' : 'downs'} the cup
+        {name} {draw.playerId === you ? 'have' : 'has'} to down the cup
       </motion.h2>
-      {mates.length > 0 && (
-        <motion.p className="relative mt-4 text-cream/85" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
-          …and {mates.map((m) => nameOf(state, m.id, you)).join(', ')} {mates.length === 1 && mates[0].id !== you ? 'drinks' : 'drink'} with{' '}
-          {draw.playerId === you ? 'you' : 'them'}.
-        </motion.p>
-      )}
+      <motion.p className="relative mt-4 text-lg text-cream/85" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
+        Good luck
+      </motion.p>
       <motion.p className="relative mt-10 text-sm text-cream/60" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.6 }}>
         Tap to continue
       </motion.p>
@@ -254,3 +250,4 @@ export function PickAnnouncement({ state, entry, you }: { state: GameState; entr
 function listNames(names: string[]) {
   return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]
 }
+
