@@ -2,93 +2,149 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ClientMessage, GameState, ServerMessage } from '../../shared/types.ts'
 import { deviceToken, loadRoomCode, saveRoomCode } from './storage.ts'
 
-const WS_URL =
-  import.meta.env.VITE_WS_URL ?? `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`
+const WS_BASE = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`
+/** Phones and proxies drop quiet sockets, so ping every so often. The server answers without waking up. */
+const KEEPALIVE_MS = 25_000
 
-export type ConnectionStatus = 'connecting' | 'open' | 'closed'
+export type ConnectionStatus = 'idle' | 'connecting' | 'open' | 'closed'
 
 export interface Notice {
   id: number
   message: string
 }
 
+/**
+ * Each game room is its own server (a Cloudflare Durable Object) at `/ws/CODE`, so a socket is only
+ * opened once we know which room we're in: when hosting, joining, or coming back to a saved game.
+ */
 export function useGame() {
   const [state, setState] = useState<GameState | null>(null)
   const [you, setYou] = useState<string | null>(null)
-  const [status, setStatus] = useState<ConnectionStatus>('connecting')
+  const [status, setStatus] = useState<ConnectionStatus>('idle')
   const [notice, setNotice] = useState<Notice | null>(null)
   // Until the first resume attempt settles we don't know whether to show the home screen.
   const [resuming, setResuming] = useState(() => loadRoomCode() !== null)
 
   const wsRef = useRef<WebSocket | null>(null)
+  /** The room we want to be connected to. Null once we've left. */
+  const codeRef = useRef<string | null>(null)
   const queue = useRef<ClientMessage[]>([])
   const retry = useRef(0)
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const notify = useCallback((message: string) => setNotice({ id: Date.now(), message }), [])
 
-  const connect = useCallback(() => {
-    const current = wsRef.current
-    if (current && (current.readyState === WebSocket.OPEN || current.readyState === WebSocket.CONNECTING)) return
+  const disconnect = useCallback(() => {
+    codeRef.current = null
+    clearTimeout(retryTimer.current)
+    queue.current = []
+    const ws = wsRef.current
+    wsRef.current = null
+    ws?.close()
+    setStatus('idle')
+  }, [])
 
-    setStatus('connecting')
-    const ws = new WebSocket(WS_URL)
-    wsRef.current = ws
+  /** Opens a socket to a room. `first` is sent as soon as it's open (create, join or resume). */
+  const connect = useCallback(
+    (code: string, first: ClientMessage) => {
+      clearTimeout(retryTimer.current)
+      wsRef.current?.close()
+      codeRef.current = code
+      queue.current = [first]
+      setStatus('connecting')
 
-    ws.onopen = () => {
-      retry.current = 0
-      setStatus('open')
-      const code = loadRoomCode()
-      if (code) ws.send(JSON.stringify({ type: 'resume', token: deviceToken(), code } satisfies ClientMessage))
-      for (const msg of queue.current.splice(0)) ws.send(JSON.stringify(msg))
-    }
+      const ws = new WebSocket(`${WS_BASE}/ws/${code}`)
+      wsRef.current = ws
 
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data) as ServerMessage
-      if (msg.type === 'state') {
-        setState(msg.state)
-        setYou(msg.you)
-        saveRoomCode(msg.state.code)
-        setResuming(false)
-      } else if (msg.type === 'error') {
-        if (msg.fatal) {
+      ws.onopen = () => {
+        retry.current = 0
+        setStatus('open')
+        for (const msg of queue.current.splice(0)) ws.send(JSON.stringify(msg))
+      }
+
+      ws.onmessage = (event) => {
+        if (event.data === 'pong') return
+        const msg = JSON.parse(event.data) as ServerMessage
+        if (msg.type === 'state') {
+          setState(msg.state)
+          setYou(msg.you)
+          saveRoomCode(msg.state.code)
+          setResuming(false)
+        } else if (msg.type === 'error') {
+          if (msg.fatal) {
+            disconnect()
+            saveRoomCode(null)
+            setState(null)
+            setResuming(false)
+          }
+          notify(msg.message)
+        } else if (msg.type === 'left') {
+          disconnect()
           saveRoomCode(null)
           setState(null)
-          setResuming(false)
         }
-        notify(msg.message)
-      } else if (msg.type === 'left') {
-        saveRoomCode(null)
-        setState(null)
       }
-    }
 
-    ws.onclose = () => {
-      if (wsRef.current !== ws) return
-      setStatus('closed')
-      const delay = Math.min(5000, 500 * 2 ** retry.current++)
-      setTimeout(connect, delay)
-    }
-  }, [notify])
+      ws.onclose = () => {
+        if (wsRef.current !== ws) return
+        wsRef.current = null
+        if (codeRef.current !== code) return
+        // Dropped unexpectedly (screen locked, bad signal): come back to the same seat.
+        setStatus('closed')
+        const delay = Math.min(5000, 500 * 2 ** retry.current++)
+        retryTimer.current = setTimeout(() => connect(code, { type: 'resume', token: deviceToken(), code }), delay)
+      }
+    },
+    [disconnect, notify],
+  )
 
   useEffect(() => {
-    connect()
+    const saved = loadRoomCode()
+    if (saved) connect(saved, { type: 'resume', token: deviceToken(), code: saved })
+
     // Phones kill sockets when the screen locks. Reconnect as soon as we're back.
     const onVisible = () => {
-      if (document.visibilityState === 'visible') connect()
+      const code = codeRef.current
+      const ws = wsRef.current
+      if (document.visibilityState !== 'visible' || !code) return
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return
+      connect(code, { type: 'resume', token: deviceToken(), code })
     }
     document.addEventListener('visibilitychange', onVisible)
     window.addEventListener('online', onVisible)
+
+    const keepalive = setInterval(() => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) wsRef.current.send('ping')
+    }, KEEPALIVE_MS)
+
     return () => {
       document.removeEventListener('visibilitychange', onVisible)
       window.removeEventListener('online', onVisible)
+      clearInterval(keepalive)
+      disconnect()
     }
-  }, [connect])
+  }, [connect, disconnect])
 
-  const send = useCallback((msg: ClientMessage) => {
-    const ws = wsRef.current
-    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg))
-    else queue.current.push(msg)
-  }, [])
+  const send = useCallback(
+    (msg: ClientMessage) => {
+      if (msg.type === 'create') {
+        // Reserve a fresh code first, then open the new room.
+        fetch('/api/rooms', { method: 'POST' })
+          .then((res) => (res.ok ? (res.json() as Promise<{ code: string }>) : Promise.reject()))
+          .then(({ code }) => connect(code, msg))
+          .catch(() => notify("Couldn't reach the server. Try again"))
+        return
+      }
+      if (msg.type === 'join') {
+        connect(msg.code.toUpperCase().trim(), msg)
+        return
+      }
+      const ws = wsRef.current
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg))
+      else queue.current.push(msg)
+    },
+    [connect, notify],
+  )
 
   return { state, you, status, notice, resuming, send, notify }
 }

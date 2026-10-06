@@ -1,0 +1,9 @@
+{
+  // The game server, running on Cloudflare Workers. Its runtime types come from `npm run cf-typegen`.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": []
+  },
+  "include": ["server", "shared", "worker-configuration.d.ts"]
+}

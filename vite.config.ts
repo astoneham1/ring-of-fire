@@ -1,16 +1,13 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { cloudflare } from '@cloudflare/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
-
-const SERVER_PORT = Number(process.env.SERVER_PORT ?? 8787)
+import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  // The Cloudflare plugin runs the game server (Worker + Durable Objects) inside the dev server too.
+  plugins: [react(), tailwindcss(), cloudflare()],
   server: {
     // Expose on the local network so phones on the same Wi-Fi can join.
     host: true,
-    proxy: {
-      '/ws': { target: `ws://localhost:${SERVER_PORT}`, ws: true },
-    },
   },
 })

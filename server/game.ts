@@ -47,13 +47,29 @@ function randomId(): string {
   return Math.random().toString(36).slice(2, 10)
 }
 
+/** Everything needed to rebuild a room after the server has been asleep. */
+export interface RoomSnapshot {
+  state: GameState
+  deck: Card[]
+  tokens: [string, string][]
+}
+
 export class Room {
   readonly state: GameState
   /** The face-down card at each ring position. Never sent to clients. */
   private deck: Card[] = freshDeck()
   /** Private reconnect token -> public player id. */
   private tokens = new Map<string, string>()
-  lastActive = Date.now()
+
+  static restore(snapshot: RoomSnapshot): Room {
+    const room: Room = Object.create(Room.prototype)
+    Object.assign(room, { state: snapshot.state, deck: snapshot.deck, tokens: new Map(snapshot.tokens) })
+    return room
+  }
+
+  snapshot(): RoomSnapshot {
+    return { state: this.state, deck: this.deck, tokens: [...this.tokens] }
+  }
 
   constructor(code: string, hostToken: string, hostName: string, hostGender: Gender) {
     const host: Player = { id: randomId(), name: cleanName(hostName), gender: hostGender, connected: true }
