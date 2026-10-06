@@ -126,6 +126,10 @@ export class Room {
     if (actorId !== this.state.hostId) fail('Only the host can do that')
   }
 
+  private requireNotFinished() {
+    if (this.state.phase === 'finished') fail('The game is over')
+  }
+
   private requirePhase(phase: GameState['phase']) {
     if (this.state.phase !== phase) fail(phase === 'lobby' ? 'The game has already started' : "The game isn't running")
   }
@@ -142,7 +146,7 @@ export class Room {
       }
       return existing
     }
-    if (this.state.phase !== 'lobby') fail("This game has already started. Ask the host to start a new one")
+    // Latecomers are welcome mid-game: they sit at the end of the circle until the host moves them.
     if (this.state.players.length >= MAX_PLAYERS) fail('This game is full')
     const clean = cleanName(name)
     if (this.state.players.some((p) => p.name.toLowerCase() === clean.toLowerCase())) {
@@ -184,18 +188,19 @@ export class Room {
     }
   }
 
+  /** The host removing someone, in the lobby or mid-game (e.g. they've gone home without their phone). */
   kick(actorId: string, playerId: string) {
     this.requireHost(actorId)
-    this.requirePhase('lobby')
     if (playerId === actorId) fail("You can't remove yourself")
+    if (!this.player(playerId)) fail('Player not found')
     this.remove(playerId)
     this.state.kicked = [...this.state.kicked, playerId].slice(-HISTORY_LIMIT)
   }
 
-  /** Hands the host role to someone else in the lobby. */
+  /** Hands the host role to someone else. */
   makeHost(actorId: string, playerId: string) {
     this.requireHost(actorId)
-    this.requirePhase('lobby')
+    this.requireNotFinished()
     if (!this.player(playerId)) fail('Player not found')
     this.state.hostId = playerId
   }
@@ -215,9 +220,10 @@ export class Room {
     this.state.cup.total = this.cupTotal()
   }
 
+  /** Swaps two seats, in the lobby or mid-game (e.g. to place a latecomer). Turns follow players, not seats. */
   swapSeats(actorId: string, a: string, b: string) {
     this.requireHost(actorId)
-    this.requirePhase('lobby')
+    this.requireNotFinished()
     const players = this.state.players
     const i = players.findIndex((p) => p.id === a)
     const j = players.findIndex((p) => p.id === b)

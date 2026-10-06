@@ -4,6 +4,7 @@ import { getRule, ruleName } from '../../shared/rules.ts'
 import { RANKS, type GameState } from '../../shared/types.ts'
 import { DrawSheet } from '../components/DrawSheet.tsx'
 import { HostSkip } from '../components/HostSkip.tsx'
+import { SeatPanel, useSeatSelection } from '../components/SeatPanel.tsx'
 import { ConfirmSheet, FinalCup, PickAnnouncement, StarterReveal, YouDrink } from '../components/Overlays.tsx'
 import { RankBadge } from '../components/PlayingCard.tsx'
 import { Table } from '../components/Table.tsx'
@@ -21,6 +22,14 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
   const draw = state.current
   const [showRules, setShowRules] = useState(false)
   const [confirmExit, setConfirmExit] = useState(false)
+  const seats = useSeatSelection(send, state.players)
+  const selectedPlayer = state.players.find((p) => p.id === seats.selected)
+  // A card coming up takes over the bottom of the screen, so put the seat controls away.
+  const { clear: clearSeats } = seats
+  const drawSlot = draw?.slot
+  useEffect(() => {
+    if (drawSlot !== undefined) clearSeats()
+  }, [drawSlot, clearSeats])
 
   // Intro spin only for a brand new game, not when reconnecting halfway through.
   const [introFor, setIntroFor] = useState<number | null>(() =>
@@ -78,7 +87,7 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
   }, [pickedYou])
 
   return (
-    <main className="safe-top safe-bottom mx-auto flex min-h-dvh max-w-md flex-col px-4">
+    <main className={`safe-top safe-bottom mx-auto flex min-h-dvh max-w-md flex-col px-4 ${seats.selected ? 'pb-48' : ''}`}>
       <header className="grid grid-cols-[1fr_auto_1fr] items-center">
         <button
           type="button"
@@ -123,7 +132,7 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
         </AnimatePresence>
       </div>
 
-      <div className="mx-auto w-full max-w-[400px]">
+      <div ref={seats.tableRef} className="mx-auto w-full max-w-[400px] scroll-mb-48">
         <Table
           players={state.players}
           viewerId={you}
@@ -135,6 +144,8 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
           cupLabel={state.cup.total ? `${state.cup.drawn} / ${state.cup.total}` : undefined}
           canDraw={canDraw}
           onDraw={(slot) => send({ type: 'draw', slot })}
+          onSeatTap={isHost ? seats.tapSeat : undefined}
+          selectedSeat={seats.selected}
         />
       </div>
 
@@ -173,6 +184,25 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
         {introFor === state.gameId && <StarterReveal state={state} you={you} onDone={() => setIntroFor(null)} />}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {selectedPlayer && (
+          <SeatPanel
+            key={selectedPlayer.id}
+            player={selectedPlayer}
+            isYou={selectedPlayer.id === you}
+            onMakeHost={() => {
+              send({ type: 'makeHost', playerId: selectedPlayer.id })
+              seats.clear()
+            }}
+            onRemove={() => {
+              send({ type: 'kick', playerId: selectedPlayer.id })
+              seats.clear()
+            }}
+            onClose={seats.clear}
+          />
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>{showRules && <RulesSheet state={state} onClose={() => setShowRules(false)} />}</AnimatePresence>
 
       <AnimatePresence>
@@ -189,7 +219,7 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
           ) : (
             <ConfirmSheet
               title="Leave the game?"
-              body="You'll lose your seat and play will skip you. You can't rejoin this game once you've left."
+              body="You'll lose your seat and play will skip you."
               confirmLabel="Leave"
               cancelLabel="Stay"
               onConfirm={() => send({ type: 'leave' })}

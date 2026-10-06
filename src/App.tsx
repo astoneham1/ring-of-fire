@@ -22,7 +22,8 @@ export function App() {
     const left = gone.filter((p) => !state.kicked.includes(p.id))
     const names = (players: typeof gone) => players.map((p) => p.name).join(' and ')
     const messages = [
-      joined.length > 0 && `${names(joined)} joined`,
+      joined.length > 0 &&
+        `${names(joined)} joined${state.phase === 'playing' && state.hostId === you ? ' · tap their seat to move them' : ''}`,
       left.length > 0 && `${names(left)} irish exited`,
       removed.length > 0 && `${names(removed)} ${removed.length > 1 ? 'were' : 'was'} removed`,
       before.hostId !== state.hostId &&

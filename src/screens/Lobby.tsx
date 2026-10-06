@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react'
 import { DEFAULT_RULES, RULE_LIBRARY, getRule, ruleName } from '../../shared/rules.ts'
 import { RANKS, type GameState } from '../../shared/types.ts'
 import { RankBadge } from '../components/PlayingCard.tsx'
+import { SeatPanel, useSeatSelection } from '../components/SeatPanel.tsx'
 import { Table } from '../components/Table.tsx'
 import { nameOf } from '../lib/players.ts'
 import { saveLastRules } from '../lib/storage.ts'
@@ -11,17 +12,12 @@ import type { Send } from '../lib/useGame.ts'
 
 export function Lobby({ state, you, send, notify }: { state: GameState; you: string; send: Send; notify: (m: string) => void }) {
   const isHost = state.hostId === you
-  const [selected, setSelected] = useState<string | null>(null)
+  const seats = useSeatSelection(send, state.players)
+  const selectedPlayer = state.players.find((p) => p.id === seats.selected)
   const [showQr, setShowQr] = useState(false)
   const rulesRef = useRef<HTMLHeadingElement>(null)
   const footerRef = useRef<HTMLElement>(null)
   const rulesHidden = useHiddenBehind(rulesRef, footerRef)
-  const actionBarRef = useRef<HTMLDivElement>(null)
-
-  // Keep the seat actions clear of the fixed footer when they pop up.
-  useEffect(() => {
-    if (selected) actionBarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [selected])
   const link = `${location.origin}/?join=${state.code}`
   const onLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname)
   const rulesChanged = RANKS.some((r) => state.rules[r] !== DEFAULT_RULES[r])
@@ -39,15 +35,6 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
     }
   }
 
-  const tapSeat = (id: string) => {
-    if (!isHost) return
-    if (!selected) setSelected(id)
-    else if (selected === id) setSelected(null)
-    else {
-      send({ type: 'swapSeats', a: selected, b: id })
-      setSelected(null)
-    }
-  }
 
   return (
     <main className="safe-top mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-36">
@@ -96,65 +83,25 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
         </div>
         <p className="mt-1 text-sm text-smoke">
           {isHost
-            ? 'Tap two people to swap their seats. Tap someone to remove them or make them host.'
+            ? 'Tap two people to swap their seats, or tap someone to make them host or remove them.'
             : 'The host is arranging the seats.'}
         </p>
         {/* Sized by screen height too, so the house rules peek out above the footer. */}
-        <div className="mx-auto mt-1" style={{ width: 'min(100%, 380px, max(260px, calc(100dvh - 380px)))' }}>
+        <div
+          ref={seats.tableRef}
+          className="mx-auto mt-1 scroll-mb-48"
+          style={{ width: 'min(100%, 380px, max(260px, calc(100dvh - 380px)))' }}
+        >
           <Table
             players={state.players}
             viewerId={you}
             hostId={state.hostId}
             seed={state.gameId}
             cupLabel="clockwise ↻"
-            selectedSeat={selected}
-            onSeatTap={isHost ? tapSeat : undefined}
+            selectedSeat={seats.selected}
+            onSeatTap={isHost ? seats.tapSeat : undefined}
           />
         </div>
-        <AnimatePresence>
-          {selected && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              ref={actionBarRef}
-              className="panel mt-4 scroll-mb-44 p-2 pl-4"
-            >
-              <p className="py-1 text-sm">
-                Tap another seat to swap <b>{nameOf(state, selected, you)}</b> with them
-              </p>
-              <div className="-ml-3 flex flex-wrap">
-                {selected !== you && (
-                  <>
-                    <button
-                      type="button"
-                      className="btn-ghost h-9 text-sm text-gold"
-                      onClick={() => {
-                        send({ type: 'makeHost', playerId: selected })
-                        setSelected(null)
-                      }}
-                    >
-                      Make host
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost h-9 text-sm text-flame"
-                      onClick={() => {
-                        send({ type: 'kick', playerId: selected })
-                        setSelected(null)
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </>
-                )}
-                <button type="button" className="btn-ghost ml-auto h-9 text-sm" onClick={() => setSelected(null)}>
-                  Cancel
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </section>
 
       <section className="mt-6">
@@ -211,6 +158,25 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
           </p>
         )}
       </section>
+
+      <AnimatePresence>
+        {selectedPlayer && (
+          <SeatPanel
+            key={selectedPlayer.id}
+            player={selectedPlayer}
+            isYou={selectedPlayer.id === you}
+            onMakeHost={() => {
+              send({ type: 'makeHost', playerId: selectedPlayer.id })
+              seats.clear()
+            }}
+            onRemove={() => {
+              send({ type: 'kick', playerId: selectedPlayer.id })
+              seats.clear()
+            }}
+            onClose={seats.clear}
+          />
+        )}
+      </AnimatePresence>
 
       <footer
         ref={footerRef}
