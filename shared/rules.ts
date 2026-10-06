@@ -191,6 +191,17 @@ export function isRuleId(id: string): boolean {
   return BY_ID.has(id)
 }
 
+/** Some groups call a rule something different when it's on a particular card. */
+const NAMES_ON_RANK: Partial<Record<Rank, Partial<Record<string, string>>>> = {
+  '4': { chicks: 'Whore' },
+  '6': { guys: 'Dicks' },
+}
+
+/** The rule's name as shown for a given card, e.g. Chicks on a 4 is "Whore". */
+export function ruleName(rule: RuleDef, rank?: Rank): string {
+  return (rank && NAMES_ON_RANK[rank]?.[rule.id]) || rule.name
+}
+
 /** Fills in a rule description for the person reading it. */
 export function describe(rule: RuleDef, drawer: { name: string; gender: Gender }, isDrawer: boolean): string {
   const words: Record<string, string> = isDrawer

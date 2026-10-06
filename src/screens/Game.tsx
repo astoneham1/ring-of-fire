@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
-import { getRule } from '../../shared/rules.ts'
+import { getRule, ruleName } from '../../shared/rules.ts'
 import { RANKS, type GameState } from '../../shared/types.ts'
 import { DrawSheet } from '../components/DrawSheet.tsx'
 import { HostSkip } from '../components/HostSkip.tsx'
@@ -231,7 +231,7 @@ function RulesSheet({ state, onClose }: { state: GameState; onClose: () => void 
               <li key={rank} className="flex items-center gap-3 py-2.5">
                 <RankBadge rank={rank} />
                 <div className="min-w-0">
-                  <p className="font-semibold">{rule.name}</p>
+                  <p className="font-semibold">{ruleName(rule, rank)}</p>
                   <p className="text-sm text-smoke">{rule.summary}</p>
                 </div>
               </li>

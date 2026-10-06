@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { MASTER_TITLES, RANK_NAMES, describe, getRule } from '../../shared/rules.ts'
+import { MASTER_TITLES, RANK_NAMES, describe, getRule, ruleName } from '../../shared/rules.ts'
 import type { Draw, GameState } from '../../shared/types.ts'
 import { clockwiseFrom, matesOf, nameOf, vibrate } from '../lib/players.ts'
 import { serverNow, type Send } from '../lib/useGame.ts'
@@ -46,7 +46,7 @@ export function DrawSheet({ state, draw, you, send }: Props) {
 
         <div className="mt-5 text-center">
           <p className="label">{RANK_NAMES[draw.card.rank]}</p>
-          <h2 className="font-display text-4xl leading-tight font-extrabold tracking-tight">{rule.name}</h2>
+          <h2 className="font-display text-4xl leading-tight font-extrabold tracking-tight">{ruleName(rule, draw.card.rank)}</h2>
           <p className="mx-auto mt-2 max-w-sm text-[15px] leading-relaxed text-cream/80">
             {drawer && describe(rule, drawer, isDrawer)}
           </p>

@@ -1,4 +1,4 @@
-import { getRule } from '../../shared/rules.ts'
+import { getRule, ruleName } from '../../shared/rules.ts'
 import type { GameState } from '../../shared/types.ts'
 import { nameOf } from '../lib/players.ts'
 import type { Send } from '../lib/useGame.ts'
@@ -77,7 +77,7 @@ export function TableInfo({
 
       {last && (
         <p className="flex items-center justify-center gap-2 text-sm text-smoke">
-          Last: {nameOf(state, last.playerId, you)} drew <CardChip card={last.card} /> {getRule(last.ruleId).name}
+          Last: {nameOf(state, last.playerId, you)} drew <CardChip card={last.card} /> {ruleName(getRule(last.ruleId), last.card.rank)}
           {last.targetId && <span>· {lastPickText(state, last.ruleId, last.targetId, you)}</span>}
         </p>
       )}

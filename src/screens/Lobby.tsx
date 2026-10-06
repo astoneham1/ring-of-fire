@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useEffect, useRef, useState, type RefObject } from 'react'
-import { DEFAULT_RULES, RULE_LIBRARY, getRule } from '../../shared/rules.ts'
+import { DEFAULT_RULES, RULE_LIBRARY, getRule, ruleName } from '../../shared/rules.ts'
 import { RANKS, type GameState } from '../../shared/types.ts'
 import { RankBadge } from '../components/PlayingCard.tsx'
 import { Table } from '../components/Table.tsx'
@@ -163,7 +163,7 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
                     >
                       {RULE_LIBRARY.map((r) => (
                         <option key={r.id} value={r.id}>
-                          {r.name}
+                          {ruleName(r, rank)}
                         </option>
                       ))}
                     </select>
@@ -172,7 +172,7 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
                   </div>
                 ) : (
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{rule.name}</p>
+                    <p className="font-semibold">{ruleName(rule, rank)}</p>
                     <p className="truncate text-xs text-smoke">{rule.summary}</p>
                   </div>
                 )}
