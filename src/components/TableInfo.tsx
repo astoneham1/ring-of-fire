@@ -97,6 +97,7 @@ export function TableInfo({
       {last && (
         <p className="flex items-center justify-center gap-2 text-sm text-smoke">
           Last: {nameOf(state, last.playerId, you)} drew <CardChip card={last.card} /> {getRule(last.ruleId).name}
+          {last.targetId && <span>· {last.targetId === you ? 'you drink' : `${nameOf(state, last.targetId)} drinks`}</span>}
         </p>
       )}
     </div>

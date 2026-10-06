@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getRule } from '../../shared/rules.ts'
 import { RANKS, type GameState } from '../../shared/types.ts'
 import { DrawSheet } from '../components/DrawSheet.tsx'
-import { ConfirmSheet, FinalCup, StarterReveal } from '../components/Overlays.tsx'
+import { HostSkip } from '../components/HostSkip.tsx'
+import { ConfirmSheet, FinalCup, PickAnnouncement, StarterReveal } from '../components/Overlays.tsx'
 import { RankBadge } from '../components/PlayingCard.tsx'
 import { Table } from '../components/Table.tsx'
 import { TableInfo } from '../components/TableInfo.tsx'
@@ -14,7 +15,6 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
   const isHost = state.hostId === you
   const yourTurn = state.turnId === you
   const draw = state.current
-  const [hostDrawing, setHostDrawing] = useState(false)
   const [showRules, setShowRules] = useState(false)
   const [confirmExit, setConfirmExit] = useState(false)
 
@@ -32,9 +32,23 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
     if (yourTurn && !draw) vibrate(180)
   }, [yourTurn, draw])
 
-  useEffect(() => setHostDrawing(false), [state.turnId, draw])
+  const canDraw = !draw && yourTurn
 
-  const canDraw = !draw && (yourTurn || (isHost && hostDrawing))
+  // Announce "2 — You" picks, since that card finishes the moment a name is tapped.
+  const latest = state.history[0]
+  const latestKey = latest ? `${state.gameId}-${latest.slot}` : null
+  const seenKey = useRef(latestKey)
+  const [announce, setAnnounce] = useState<typeof latest | null>(null)
+  useEffect(() => {
+    if (latestKey === seenKey.current) return
+    seenKey.current = latestKey
+    if (latest && latest.targetId && getRule(latest.ruleId).action.kind === 'chooseDrinker') setAnnounce(latest)
+  }, [latestKey, latest])
+  useEffect(() => {
+    if (!announce) return
+    const t = setTimeout(() => setAnnounce(null), 4000)
+    return () => clearTimeout(t)
+  }, [announce])
 
   return (
     <main className="safe-top safe-bottom mx-auto flex min-h-dvh max-w-md flex-col px-4">
@@ -75,17 +89,7 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
             ) : (
               <>
                 <h1 className="font-display text-3xl font-extrabold tracking-tight">{nameOf(state, state.turnId)}'s turn</h1>
-                {isHost && !draw ? (
-                  <button
-                    type="button"
-                    className="text-sm font-semibold text-smoke underline decoration-ash underline-offset-4"
-                    onClick={() => setHostDrawing((v) => !v)}
-                  >
-                    {hostDrawing ? `Tap a card for ${nameOf(state, state.turnId)} · cancel` : `Draw for ${nameOf(state, state.turnId)}`}
-                  </button>
-                ) : (
-                  <p className="text-smoke">{nextId === you ? "You're up next" : '\u00a0'}</p>
-                )}
+                <p className="text-smoke">{nextId === you ? "You're up next" : '\u00a0'}</p>
               </>
             )}
           </motion.div>
@@ -107,6 +111,12 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
         />
       </div>
 
+      {isHost && !yourTurn && !draw && (
+        <div className="mt-7 flex justify-center">
+          <HostSkip label={`Skip ${nameOf(state, state.turnId)}'s turn`} onSkip={() => send({ type: 'skip' })} />
+        </div>
+      )}
+
       <section className="mt-4 pb-4">
         <TableInfo state={state} you={you} send={send} />
       </section>
@@ -118,6 +128,8 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
           <FinalCup state={state} draw={draw} you={you} onDone={() => setSeenFinalCup(finalCupKey)} />
         )}
       </AnimatePresence>
+
+      <AnimatePresence>{announce && <PickAnnouncement key={announce.slot} state={state} entry={announce} you={you} />}</AnimatePresence>
 
       <AnimatePresence>
         {introFor === state.gameId && <StarterReveal state={state} you={you} onDone={() => setIntroFor(null)} />}

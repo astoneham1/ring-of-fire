@@ -129,6 +129,9 @@ function handle(ws: WebSocket, msg: ClientMessage) {
     case 'done':
       room.done(playerId)
       break
+    case 'skip':
+      room.skip(playerId)
+      break
     case 'endGame':
       room.endGame(playerId)
       break

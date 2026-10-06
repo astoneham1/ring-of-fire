@@ -204,7 +204,7 @@ export class Room {
   draw(actorId: string, slot: number) {
     this.requirePhase('playing')
     const s = this.state
-    if (actorId !== s.turnId && actorId !== s.hostId) fail("It's not your turn")
+    if (actorId !== s.turnId) fail("It's not your turn")
     if (s.current) fail('Finish the current card first')
     if (!Number.isInteger(slot) || slot < 0 || slot >= DECK_SIZE || s.taken[slot]) fail('That card is gone')
 
@@ -267,7 +267,7 @@ export class Room {
     const s = this.state
     const draw = s.current
     if (!draw || !draw.awaitingChoice) fail('Nothing to choose')
-    if (actorId !== draw.playerId && actorId !== s.hostId) fail("It's not your pick")
+    if (actorId !== draw.playerId) fail("It's not your pick")
     if (!this.player(targetId)) fail('Player not found')
     if (targetId === draw.playerId) fail('Pick someone else')
 
@@ -282,6 +282,8 @@ export class Room {
     }
     draw.targetId = targetId
     draw.awaitingChoice = false
+    // Picking who drinks is the whole turn, so there's nothing left to press Done for.
+    if (kind === 'chooseDrinker') this.endTurn()
   }
 
   writeRule(actorId: string, text: string) {
@@ -289,7 +291,7 @@ export class Room {
     const s = this.state
     const draw = s.current
     if (!draw || !draw.awaitingChoice || getRule(draw.ruleId).action.kind !== 'writeRule') fail('Nothing to write')
-    if (actorId !== draw.playerId && actorId !== s.hostId) fail("It's not your rule to make")
+    if (actorId !== draw.playerId) fail("It's not your rule to make")
     const clean = text.replace(/\s+/g, ' ').trim().slice(0, MAX_RULE_TEXT)
     if (!clean) fail('Write a rule first')
     draw.ruleText = clean
@@ -321,28 +323,44 @@ export class Room {
     const s = this.state
     const draw = s.current
     if (!draw) return
-    s.history.unshift({ card: draw.card, playerId: draw.playerId, ruleId: draw.ruleId })
+    s.history.unshift({
+      card: draw.card,
+      slot: draw.slot,
+      playerId: draw.playerId,
+      ruleId: draw.ruleId,
+      targetId: draw.targetId,
+      drinkers: draw.drinkers,
+    })
     s.history.length = Math.min(s.history.length, HISTORY_LIMIT)
     s.current = null
   }
 
   done(actorId: string) {
     this.requirePhase('playing')
-    const s = this.state
-    const draw = s.current
+    const draw = this.state.current
     if (!draw) fail('Draw a card first')
-    const isHost = actorId === s.hostId
-    if (actorId !== draw.playerId && !isHost) fail("It's not your turn")
-    // The host can skip a stuck pick on someone else's turn, but not dodge their own.
-    if (draw.awaitingChoice && (actorId === draw.playerId || !isHost)) fail(getRule(draw.ruleId).action.kind === 'writeRule' ? 'Make your rule first' : 'Make your pick first')
+    if (actorId !== draw.playerId) fail("It's not your turn")
+    if (draw.awaitingChoice) fail(getRule(draw.ruleId).action.kind === 'writeRule' ? 'Make your rule first' : 'Make your pick first')
+    this.endTurn()
+  }
 
+  /** Host override for a stuck turn: skips it whether or not a card has been drawn. */
+  skip(actorId: string) {
+    this.requireHost(actorId)
+    this.requirePhase('playing')
+    if (this.state.turnId === actorId) fail("It's your turn. Just play it")
+    this.endTurn()
+  }
+
+  /** Wraps up any drawn card and passes play clockwise (or ends the game if the deck's empty). */
+  private endTurn() {
+    const s = this.state
     this.finishDraw()
-
     if (s.cardsLeft === 0) {
       this.finish('deck')
       return
     }
-    const idx = s.players.findIndex((p) => p.id === draw.playerId)
+    const idx = s.players.findIndex((p) => p.id === s.turnId)
     s.turnId = s.players[(idx + 1) % s.players.length].id
   }
 

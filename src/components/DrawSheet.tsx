@@ -5,6 +5,7 @@ import type { Draw, GameState } from '../../shared/types.ts'
 import { clockwiseFrom, matesOf, nameOf } from '../lib/players.ts'
 import type { Send } from '../lib/useGame.ts'
 import { Avatar, PlayerTag } from './Avatar.tsx'
+import { HostSkip } from './HostSkip.tsx'
 import { CardBack, CardFace } from './PlayingCard.tsx'
 
 interface Props {
@@ -18,9 +19,9 @@ export function DrawSheet({ state, draw, you, send }: Props) {
   const rule = getRule(draw.ruleId)
   const isDrawer = draw.playerId === you
   const isHost = state.hostId === you
-  const canAct = isDrawer || isHost
   const drawerName = nameOf(state, draw.playerId)
-  const blocked = draw.awaitingChoice && (isDrawer || !isHost)
+  // Picking who drinks ends the turn by itself, so there's no Done button for it.
+  const finishesOnPick = rule.action.kind === 'chooseDrinker' && draw.awaitingChoice
 
   return (
     <motion.div
@@ -49,18 +50,35 @@ export function DrawSheet({ state, draw, you, send }: Props) {
         </div>
 
         <div className="mt-5 space-y-4">
-          <Outcome state={state} draw={draw} you={you} canAct={canAct} send={send} />
+          <Outcome state={state} draw={draw} you={you} canAct={isDrawer} send={send} />
         </div>
 
         <div className="sticky bottom-0 mt-6 bg-coal pt-2">
-          {canAct ? (
-            <button type="button" className="btn-primary w-full" disabled={blocked} onClick={() => send({ type: 'done' })}>
-              {isDrawer ? 'Done' : `Done for ${drawerName}`}
-            </button>
+          {isDrawer ? (
+            !finishesOnPick && (
+              <button
+                type="button"
+                className="btn-primary w-full"
+                disabled={draw.awaitingChoice}
+                onClick={() => send({ type: 'done' })}
+              >
+                Done
+              </button>
+            )
           ) : (
-            <div className="flex h-14 items-center justify-center rounded-2xl border border-char text-smoke">
-              Waiting for {drawerName} to finish…
-            </div>
+            <>
+              {/* While they're picking, the outcome above already says what we're waiting for. */}
+              {!draw.awaitingChoice && (
+                <div className="flex h-14 items-center justify-center rounded-2xl border border-char text-smoke">
+                  Waiting for {drawerName} to finish…
+                </div>
+              )}
+              {isHost && (
+                <div className="mt-3 flex justify-center">
+                  <HostSkip label={`Skip ${drawerName}'s turn`} onSkip={() => send({ type: 'skip' })} />
+                </div>
+              )}
+            </>
           )}
         </div>
       </motion.section>

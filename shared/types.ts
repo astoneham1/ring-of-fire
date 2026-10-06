@@ -53,8 +53,11 @@ export interface HouseRule {
 
 export interface HistoryEntry {
   card: Card
+  slot: number
   playerId: string
   ruleId: string
+  targetId?: string
+  drinkers: Drinker[]
 }
 
 export type Phase = 'lobby' | 'playing' | 'finished'
@@ -102,6 +105,7 @@ export type ClientMessage =
   | { type: 'writeRule'; text: string }
   | { type: 'removeHouseRule'; id: string }
   | { type: 'done' }
+  | { type: 'skip' }
   | { type: 'endGame' }
   | { type: 'newGame' }
 

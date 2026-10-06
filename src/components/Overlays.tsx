@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
-import type { Draw, GameState } from '../../shared/types.ts'
+import type { Draw, GameState, HistoryEntry } from '../../shared/types.ts'
 import { nameOf, vibrate } from '../lib/players.ts'
 import { Avatar } from './Avatar.tsx'
 import { Cup } from './Cup.tsx'
@@ -197,4 +197,39 @@ export function ConfirmSheet({
       </motion.section>
     </motion.div>
   )
+}
+
+/** Who has to drink after a "pick someone" card, shown on every phone for a few seconds. */
+export function PickAnnouncement({ state, entry, you }: { state: GameState; entry: HistoryEntry; you: string }) {
+  const target = state.players.find((p) => p.id === entry.targetId)
+  if (!target) return null
+  const mates = entry.drinkers.filter((d) => d.viaMateOf)
+  const isYou = target.id === you
+
+  return (
+    <motion.div
+      className="safe-bottom pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4"
+      initial={{ y: 40, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 40, opacity: 0 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+    >
+      <div className="flex w-full max-w-sm items-center gap-3 rounded-3xl border border-ember/40 bg-char p-3 pr-5 shadow-[0_12px_40px_-8px_rgb(0_0_0/0.7)]">
+        <Avatar player={target} size={48} />
+        <div className="min-w-0">
+          <p className="font-display text-2xl leading-tight font-extrabold">
+            {isYou ? 'You drink' : `${target.name} drinks`}
+          </p>
+          <p className="truncate text-sm text-smoke">
+            {nameOf(state, entry.playerId, you)} picked {isYou ? 'you' : 'them'}
+            {mates.length > 0 && ` · ${listNames(mates.map((m) => nameOf(state, m.id, you)))} drink too`}
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+function listNames(names: string[]) {
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]
 }
