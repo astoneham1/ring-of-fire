@@ -19,6 +19,7 @@ export function DrawSheet({ state, draw, you, send }: Props) {
   const rule = getRule(draw.ruleId)
   const isDrawer = draw.playerId === you
   const isHost = state.hostId === you
+  const drawer = state.players.find((p) => p.id === draw.playerId)
   const drawerName = nameOf(state, draw.playerId)
   // Picking someone ends the turn by itself, so there's no Done button for it.
   const finishesOnPick = (rule.action.kind === 'chooseDrinker' || rule.action.kind === 'chooseMate') && draw.awaitingChoice
@@ -47,7 +48,7 @@ export function DrawSheet({ state, draw, you, send }: Props) {
           <p className="label">{RANK_NAMES[draw.card.rank]}</p>
           <h2 className="font-display text-4xl leading-tight font-extrabold tracking-tight">{rule.name}</h2>
           <p className="mx-auto mt-2 max-w-sm text-[15px] leading-relaxed text-cream/80">
-            {describe(rule, drawerName, isDrawer)}
+            {drawer && describe(rule, drawer, isDrawer)}
           </p>
         </div>
 

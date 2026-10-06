@@ -192,10 +192,10 @@ export function isRuleId(id: string): boolean {
 }
 
 /** Fills in a rule description for the person reading it. */
-export function describe(rule: RuleDef, drawerName: string, isDrawer: boolean): string {
+export function describe(rule: RuleDef, drawer: { name: string; gender: Gender }, isDrawer: boolean): string {
   const words: Record<string, string> = isDrawer
     ? { You: 'You', you: 'you', "You're": "You're", your: 'your' }
-    : { You: drawerName, you: drawerName, "You're": `${drawerName} is`, your: `${drawerName}'s` }
+    : { You: drawer.name, you: drawer.name, "You're": `${drawer.name} is`, your: drawer.gender === 'girl' ? 'her' : 'his' }
   return rule.description.replace(/\{(You're|You|you|your)\}/g, (_, key: string) => words[key])
 }
 
