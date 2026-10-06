@@ -12,6 +12,8 @@ import { nameOf, vibrate } from '../lib/players.ts'
 import type { Send } from '../lib/useGame.ts'
 
 const YOU_DRINK_MS = 4500
+/** How long someone can sit on their turn before everyone gets a gentle nudge. */
+const SLOW_TURN_MS = 15_000
 
 export function Game({ state, you, send }: { state: GameState; you: string; send: Send }) {
   const isHost = state.hostId === you
@@ -36,6 +38,19 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
 
   const canDraw = !draw && yourTurn
 
+  // Nudge everyone if the current player is taking ages to pick a card from the ring.
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    setSlow(false)
+    if (draw) return
+    const t = setTimeout(() => setSlow(true), SLOW_TURN_MS)
+    return () => clearTimeout(t)
+  }, [state.turnId, draw])
+  const nudge = slow && (
+    <motion.p className="font-semibold text-gold italic" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      A good game's a quick game
+    </motion.p>
+  )
 
   // Announce picks (You, Mate), since those cards finish the moment a name is confirmed.
   const latest = state.history[0]
@@ -96,12 +111,12 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
             {yourTurn ? (
               <>
                 <h1 className="font-display text-4xl font-extrabold tracking-tight text-ember">Your turn</h1>
-                <p className="text-smoke">Tap a card from the ring</p>
+                {nudge || <p className="text-smoke">Tap a card from the ring</p>}
               </>
             ) : (
               <>
                 <h1 className="font-display text-3xl font-extrabold tracking-tight">{nameOf(state, state.turnId)}'s turn</h1>
-                <p className="text-smoke">{nextId === you ? "You're up next" : '\u00a0'}</p>
+                {nudge || <p className="text-smoke">{nextId === you ? "You're up next" : '\u00a0'}</p>}
               </>
             )}
           </motion.div>
