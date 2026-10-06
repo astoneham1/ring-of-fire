@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
-import type { Draw, GameState, HistoryEntry } from '../../shared/types.ts'
+import { getRule } from '../../shared/rules.ts'
+import type { Draw, GameState, HistoryEntry, Player } from '../../shared/types.ts'
 import { nameOf, vibrate } from '../lib/players.ts'
 import { Avatar } from './Avatar.tsx'
 import { Cup } from './Cup.tsx'
@@ -199,12 +200,33 @@ export function ConfirmSheet({
   )
 }
 
-/** Who has to drink after a "pick someone" card, shown on every phone for a few seconds. */
+/** Shown on every phone for a few seconds after a "pick someone" card, since that card closes as soon as they pick. */
 export function PickAnnouncement({ state, entry, you }: { state: GameState; entry: HistoryEntry; you: string }) {
   const target = state.players.find((p) => p.id === entry.targetId)
-  if (!target) return null
-  const mates = entry.drinkers.filter((d) => d.viaMateOf)
-  const isYou = target.id === you
+  const drawer = state.players.find((p) => p.id === entry.playerId)
+  if (!target || !drawer) return null
+  const isMate = getRule(entry.ruleId).action.kind === 'chooseMate'
+
+  let avatars: Player[]
+  let title: string
+  let detail: string
+  if (isMate) {
+    // Put "You" first when you're one of the pair.
+    const pair = target.id === you ? [target, drawer] : [drawer, target]
+    const others = (state.mateGroups.find((g) => g.includes(drawer.id)) ?? []).filter((id) => id !== drawer.id && id !== target.id)
+    avatars = pair
+    title = `${pair.map((p) => nameOf(state, p.id, you)).join(' & ')} are mates`
+    detail = others.length
+      ? `Linked with ${listNames(others.map((id) => nameOf(state, id, you)))} too`
+      : 'When one drinks, so does the other'
+  } else {
+    const isYou = target.id === you
+    const mates = entry.drinkers.filter((d) => d.viaMateOf)
+    avatars = [target]
+    title = isYou ? 'You drink' : `${target.name} drinks`
+    detail = `${nameOf(state, drawer.id, you)} picked ${isYou ? 'you' : 'them'}`
+    if (mates.length) detail += ` · ${listNames(mates.map((m) => nameOf(state, m.id, you)))} drink too`
+  }
 
   return (
     <motion.div
@@ -215,15 +237,14 @@ export function PickAnnouncement({ state, entry, you }: { state: GameState; entr
       transition={{ type: 'spring', stiffness: 300, damping: 24 }}
     >
       <div className="flex w-full max-w-sm items-center gap-3 rounded-3xl border border-ember/40 bg-char p-3 pr-5 shadow-[0_12px_40px_-8px_rgb(0_0_0/0.7)]">
-        <Avatar player={target} size={48} />
+        <div className="flex shrink-0 -space-x-1">
+          {avatars.map((p) => (
+            <Avatar key={p.id} player={p} size={avatars.length > 1 ? 40 : 48} className="ring-[3px] ring-char" />
+          ))}
+        </div>
         <div className="min-w-0">
-          <p className="font-display text-2xl leading-tight font-extrabold">
-            {isYou ? 'You drink' : `${target.name} drinks`}
-          </p>
-          <p className="truncate text-sm text-smoke">
-            {nameOf(state, entry.playerId, you)} picked {isYou ? 'you' : 'them'}
-            {mates.length > 0 && ` · ${listNames(mates.map((m) => nameOf(state, m.id, you)))} drink too`}
-          </p>
+          <p className="font-display text-xl leading-tight font-extrabold">{title}</p>
+          <p className="truncate text-sm text-smoke">{detail}</p>
         </div>
       </div>
     </motion.div>

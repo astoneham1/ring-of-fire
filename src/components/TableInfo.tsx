@@ -78,9 +78,15 @@ export function TableInfo({
       {last && (
         <p className="flex items-center justify-center gap-2 text-sm text-smoke">
           Last: {nameOf(state, last.playerId, you)} drew <CardChip card={last.card} /> {getRule(last.ruleId).name}
-          {last.targetId && <span>· {last.targetId === you ? 'you drink' : `${nameOf(state, last.targetId)} drinks`}</span>}
+          {last.targetId && <span>· {lastPickText(state, last.ruleId, last.targetId, you)}</span>}
         </p>
       )}
     </div>
   )
+}
+
+function lastPickText(state: GameState, ruleId: string, targetId: string, you: string) {
+  const isYou = targetId === you
+  if (getRule(ruleId).action.kind === 'chooseMate') return `mates with ${isYou ? 'you' : nameOf(state, targetId)}`
+  return isYou ? 'you drink' : `${nameOf(state, targetId)} drinks`
 }

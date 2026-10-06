@@ -20,8 +20,8 @@ export function DrawSheet({ state, draw, you, send }: Props) {
   const isDrawer = draw.playerId === you
   const isHost = state.hostId === you
   const drawerName = nameOf(state, draw.playerId)
-  // Picking who drinks ends the turn by itself, so there's no Done button for it.
-  const finishesOnPick = rule.action.kind === 'chooseDrinker' && draw.awaitingChoice
+  // Picking someone ends the turn by itself, so there's no Done button for it.
+  const finishesOnPick = (rule.action.kind === 'chooseDrinker' || rule.action.kind === 'chooseMate') && draw.awaitingChoice
 
   return (
     <motion.div
@@ -153,20 +153,9 @@ function Outcome({ state, draw, you, canAct, send }: Props & { canAct: boolean }
           </Waiting>
         ),
       )
-    } else if (action.kind === 'chooseMate' && draw.targetId) {
-      const group = [draw.playerId, ...matesOf(state, draw.playerId)]
-      blocks.push(
-        <div key="mates" className="space-y-2">
-          <p className="label">Drinking mates</p>
-          <div className="flex flex-wrap gap-2">
-            {group.map((id) => {
-              const p = state.players.find((x) => x.id === id)
-              return p && <PlayerTag key={id} player={p} />
-            })}
-          </div>
-          {group.length > 2 && <p className="text-sm text-smoke">Mates of mates count, so all {group.length} of you are linked.</p>}
-        </div>,
-      )
+    } else if (action.kind === 'chooseMate') {
+      // Only happens when the whole table is already linked, so there's nobody left to pick.
+      blocks.push(<Callout key="mates">Everyone's already mates. Nobody new to pick.</Callout>)
     }
   }
 
@@ -264,25 +253,43 @@ function PlayerPicker({
   const existingMates = matesOf(state, draw.playerId)
   const options = state.players.filter((p) => p.id !== draw.playerId && !(action === 'chooseMate' && existingMates.includes(p.id)))
 
-  if (options.length === 0) {
-    return <Callout>Everyone's already mates.</Callout>
+  // First tap picks, second tap on the same person confirms, so a fat finger can't end the turn.
+  const [picked, setPicked] = useState<string | null>(null)
+  const [sent, setSent] = useState(false)
+
+  const tap = (id: string) => {
+    if (sent) return
+    if (picked !== id) return setPicked(id)
+    setSent(true)
+    onPick(id)
   }
 
   return (
     <div className="space-y-2">
-      <p className="label">{title}</p>
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="label">{title}</p>
+        <p className={`text-xs font-semibold transition-opacity ${picked ? 'text-ember opacity-100' : 'opacity-0'}`}>
+          Tap again to confirm
+        </p>
+      </div>
       <div className="grid grid-cols-2 gap-2">
-        {options.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => onPick(p.id)}
-            className="flex items-center gap-2.5 rounded-2xl border border-ash bg-char p-2.5 text-left font-semibold transition active:scale-[0.97] active:border-ember"
-          >
-            <Avatar player={p} size={34} />
-            <span className="truncate">{p.id === you ? 'You' : p.name}</span>
-          </button>
-        ))}
+        {options.map((p) => {
+          const isPicked = p.id === picked
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => tap(p.id)}
+              className={`flex items-center gap-2.5 rounded-2xl border p-2.5 text-left font-semibold transition active:scale-[0.97] ${
+                isPicked ? 'border-ember bg-ember/15 shadow-[0_0_0_1px_var(--color-ember)]' : 'border-ash bg-char'
+              }`}
+            >
+              <Avatar player={p} size={34} />
+              <span className="min-w-0 flex-1 truncate">{p.id === you ? 'You' : p.name}</span>
+              {isPicked && <span className="shrink-0 text-xs font-bold text-ember">{sent ? '…' : 'Sure?'}</span>}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

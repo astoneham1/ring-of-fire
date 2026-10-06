@@ -276,8 +276,8 @@ export class Room {
     }
     draw.targetId = targetId
     draw.awaitingChoice = false
-    // Picking who drinks is the whole turn, so there's nothing left to press Done for.
-    if (kind === 'chooseDrinker') this.endTurn()
+    // Picking someone is the whole turn, so there's nothing left to press Done for.
+    this.endTurn()
   }
 
   writeRule(actorId: string, text: string) {

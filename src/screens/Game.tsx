@@ -34,7 +34,7 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
 
   const canDraw = !draw && yourTurn
 
-  // Announce "2 — You" picks, since that card finishes the moment a name is tapped.
+  // Announce picks (You, Mate), since those cards finish the moment a name is confirmed.
   const latest = state.history[0]
   const latestKey = latest ? `${state.gameId}-${latest.slot}` : null
   const seenKey = useRef(latestKey)
@@ -42,7 +42,7 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
   useEffect(() => {
     if (latestKey === seenKey.current) return
     seenKey.current = latestKey
-    if (latest && latest.targetId && getRule(latest.ruleId).action.kind === 'chooseDrinker') setAnnounce(latest)
+    if (latest?.targetId) setAnnounce(latest)
   }, [latestKey, latest])
   useEffect(() => {
     if (!announce) return
