@@ -120,13 +120,12 @@ export const RULE_LIBRARY: RuleDef[] = [
     action: { kind: 'writeRule' },
   },
   {
-    id: 'questionRound',
-    name: 'Question Master (truth or chop)',
-    summary: 'Everyone answers, or downs their drink',
+    id: 'questionMaster',
+    name: 'Question Master',
+    summary: 'Anyone who answers your questions drinks',
     description:
-      '{You} must ask a question. Going clockwise, everyone has to answer it. Fail to answer and you down your whole drink.',
-    action: { kind: 'none' },
-    goesRound: true,
+      'Until someone else draws this card, anyone who answers one of {your} questions drinks.',
+    action: { kind: 'master', key: 'question' },
   },
   {
     id: 'kingsCup',
@@ -153,12 +152,13 @@ export const RULE_LIBRARY: RuleDef[] = [
     action: { kind: 'master', key: 'thumb' },
   },
   {
-    id: 'questionMaster',
-    name: 'Question Master',
-    summary: 'Anyone who answers your questions drinks',
+    id: 'questionRound',
+    name: 'Question Master (truth or chop)',
+    summary: 'Everyone answers, or downs their drink',
     description:
-      'Until someone else draws this card, anyone who answers one of {your} questions drinks.',
-    action: { kind: 'master', key: 'question' },
+      '{You} must ask a question. Going clockwise, everyone has to answer it. Fail to answer and you down your whole drink.',
+    action: { kind: 'none' },
+    goesRound: true,
   },
   {
     id: 'neverHaveI',
@@ -201,7 +201,7 @@ export const DEFAULT_RULES: RuleConfig = {
   '9': 'rhyme',
   '10': 'categories',
   J: 'ruleMaker',
-  Q: 'questionRound',
+  Q: 'questionMaster',
   K: 'kingsCup',
 }
 
