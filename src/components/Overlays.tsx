@@ -59,7 +59,7 @@ export function StarterReveal({ state, you, onDone }: { state: GameState; you: s
         <span className="font-display text-4xl font-extrabold">{shown.id === you ? 'You' : shown.name}</span>
       </motion.div>
       <p className={`text-smoke transition-opacity ${landed ? 'opacity-100' : 'opacity-0'}`}>
-        Then it goes clockwise. Tap to continue.
+        Then it goes clockwise.
       </p>
     </motion.div>
   )
