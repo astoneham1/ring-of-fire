@@ -177,6 +177,14 @@ export class Room {
     this.remove(playerId)
   }
 
+  /** Hands the host role to someone else in the lobby. */
+  makeHost(actorId: string, playerId: string) {
+    this.requireHost(actorId)
+    this.requirePhase('lobby')
+    if (!this.player(playerId)) fail('Player not found')
+    this.state.hostId = playerId
+  }
+
   setRule(actorId: string, rank: Rank, ruleId: string) {
     this.requireHost(actorId)
     this.requirePhase('lobby')

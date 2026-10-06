@@ -10,15 +10,22 @@ import { Lobby } from './screens/Lobby.tsx'
 export function App() {
   const { state, you, status, notice, resuming, send, notify } = useGame()
 
-  // Let everyone know when someone leaves or is removed.
-  const lastPlayers = useRef(state?.players)
+  // Let everyone know when people come and go, or the host changes.
+  const last = useRef(state)
   useEffect(() => {
-    const before = lastPlayers.current
-    lastPlayers.current = state?.players
-    if (!state || !before || state.phase === 'lobby') return
-    const gone = before.filter((p) => !state.players.some((q) => q.id === p.id))
-    if (gone.length) notify(`${gone.map((p) => p.name).join(' and ')} left the game`)
-  }, [state, notify])
+    const before = last.current
+    last.current = state
+    if (!state || !before || before.code !== state.code) return
+    const joined = state.players.filter((p) => !before.players.some((q) => q.id === p.id))
+    const gone = before.players.filter((p) => !state.players.some((q) => q.id === p.id))
+    const messages = [
+      joined.length > 0 && `${joined.map((p) => p.name).join(' and ')} joined`,
+      gone.length > 0 && `${gone.map((p) => p.name).join(' and ')} irish exited`,
+      before.hostId !== state.hostId &&
+        (state.hostId === you ? "You're now the host" : `${state.players.find((p) => p.id === state.hostId)?.name} is now the host`),
+    ].filter(Boolean)
+    if (messages.length) notify(messages.join(' · '))
+  }, [state, you, notify])
 
   // Once you're in a game, drop ?join=CODE so a refresh doesn't try to rejoin a stale code.
   useEffect(() => {

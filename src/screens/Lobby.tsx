@@ -15,6 +15,12 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
   const rulesRef = useRef<HTMLHeadingElement>(null)
   const footerRef = useRef<HTMLElement>(null)
   const rulesHidden = useHiddenBehind(rulesRef, footerRef)
+  const actionBarRef = useRef<HTMLDivElement>(null)
+
+  // Keep the seat actions clear of the fixed footer when they pop up.
+  useEffect(() => {
+    if (selected) actionBarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [selected])
   const link = `${location.origin}/?join=${state.code}`
   const onLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname)
   const rulesChanged = RANKS.some((r) => state.rules[r] !== DEFAULT_RULES[r])
@@ -89,7 +95,7 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
         </div>
         <p className="mt-1 text-sm text-smoke">
           {isHost
-            ? 'Tap two people to swap their seats.'
+            ? 'Tap two people to swap their seats. Tap someone to remove them or make them host.'
             : 'The host is arranging the seats.'}
         </p>
         {/* Sized by screen height too, so the house rules peek out above the footer. */}
@@ -110,25 +116,38 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 8 }}
-              className="panel flex items-center justify-between gap-2 p-2 pl-4"
+              ref={actionBarRef}
+              className="panel mt-4 scroll-mb-44 p-2 pl-4"
             >
-              <span className="text-sm">
-                Swap <b>{nameOf(state, selected, you)}</b> with…
-              </span>
-              <div className="flex gap-1">
+              <p className="py-1 text-sm">
+                Tap another seat to swap <b>{nameOf(state, selected, you)}</b> with them
+              </p>
+              <div className="-ml-3 flex flex-wrap">
                 {selected !== you && (
-                  <button
-                    type="button"
-                    className="btn-ghost h-9 text-sm text-flame"
-                    onClick={() => {
-                      send({ type: 'kick', playerId: selected })
-                      setSelected(null)
-                    }}
-                  >
-                    Remove
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="btn-ghost h-9 text-sm text-gold"
+                      onClick={() => {
+                        send({ type: 'makeHost', playerId: selected })
+                        setSelected(null)
+                      }}
+                    >
+                      Make host
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost h-9 text-sm text-flame"
+                      onClick={() => {
+                        send({ type: 'kick', playerId: selected })
+                        setSelected(null)
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </>
                 )}
-                <button type="button" className="btn-ghost h-9 text-sm" onClick={() => setSelected(null)}>
+                <button type="button" className="btn-ghost ml-auto h-9 text-sm" onClick={() => setSelected(null)}>
                   Cancel
                 </button>
               </div>

@@ -230,6 +230,9 @@ export class RoomDO extends DurableObject<Env> {
           if (other.playerId === msg.playerId) this.drop(other.ws, 'The host removed you from the game')
         }
         break
+      case 'makeHost':
+        room.makeHost(playerId, msg.playerId)
+        break
       case 'setRule':
         room.setRule(playerId, msg.rank, msg.ruleId)
         break

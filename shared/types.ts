@@ -98,6 +98,7 @@ export type ClientMessage =
   | { type: 'resetRules' }
   | { type: 'swapSeats'; a: string; b: string }
   | { type: 'kick'; playerId: string }
+  | { type: 'makeHost'; playerId: string }
   | { type: 'start' }
   | { type: 'draw'; slot: number }
   | { type: 'choose'; targetId: string }
