@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+/* Phones with little vertical room, e.g. an iPhone SE with the browser bars showing. */
+@custom-variant short (@media (max-height: 620px));
+
 @theme {
   --color-ink: #140e0c;
   --color-coal: #1e1613;
@@ -50,7 +53,7 @@
 }
 
 @utility btn {
-  @apply inline-flex h-14 items-center justify-center gap-2 rounded-2xl px-6 font-display text-lg font-bold tracking-tight transition active:scale-[0.97] disabled:active:scale-100;
+  @apply inline-flex h-14 short:h-12 items-center justify-center gap-2 rounded-2xl px-6 font-display text-lg font-bold tracking-tight transition active:scale-[0.97] disabled:active:scale-100;
 }
 @utility btn-primary {
   @apply btn bg-ember text-ink shadow-[0_6px_0_0_#b8461a] active:translate-y-[3px] active:shadow-[0_3px_0_0_#b8461a];
@@ -64,7 +67,7 @@
   @apply btn h-11 px-4 text-base font-semibold text-smoke;
 }
 @utility field {
-  @apply h-14 w-full rounded-2xl border border-ash bg-coal px-4 text-cream placeholder:text-smoke/60 focus:border-ember focus:outline-none;
+  @apply h-14 short:h-12 w-full rounded-2xl border border-ash bg-coal px-4 text-cream placeholder:text-smoke/60 focus:border-ember focus:outline-none;
 }
 @utility panel {
   @apply rounded-3xl border border-char bg-coal/80;

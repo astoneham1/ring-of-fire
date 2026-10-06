@@ -41,18 +41,21 @@ export function Home({ send, notify }: { send: Send; notify: (msg: string) => vo
 
   return (
     <main className="safe-top safe-bottom mx-auto flex min-h-dvh max-w-md flex-col px-4">
-      <div className="mx-auto -mb-6 w-[74%] max-w-72 opacity-90">
-        <Table players={[]} viewerId={null} cupFill={0.55} showSeats={false} seed={3} />
+      {/* The table leaves room for seats around the ring; crop that off, and shrink on short screens. */}
+      <div className="relative mx-auto mt-2 aspect-square opacity-90" style={{ width: 'min(46vw, 22dvh, 200px)' }}>
+        <div className="absolute" style={{ inset: '-27%' }}>
+          <Table players={[]} viewerId={null} cupFill={0.55} showSeats={false} seed={3} />
+        </div>
       </div>
 
-      <header className="relative text-center">
-        <h1 className="font-display text-5xl leading-none font-extrabold tracking-tight">
+      <header className="relative mt-5 text-center short:mt-3">
+        <h1 className="font-display text-[2.6rem] leading-none font-extrabold tracking-tight">
           Ring of <span className="text-ember">Fire</span>
         </h1>
-        <p className="mt-2 text-smoke">Forgot the cards? Not a problem.</p>
+        <p className="mt-1.5 text-smoke short:hidden">Forgot the cards? Not a problem.</p>
       </header>
 
-      <section className="mt-8 space-y-3">
+      <section className="mt-6 space-y-3 short:mt-4 short:space-y-2">
         <label className="block">
           <span className="label mb-1.5 block">Your name</span>
           <input
@@ -84,7 +87,7 @@ export function Home({ send, notify }: { send: Send; notify: (msg: string) => vo
         </div>
       </section>
 
-      <section className="mt-auto space-y-4 pt-8">
+      <section className="mt-auto space-y-3 pt-6 short:space-y-2 short:pt-4">
         {!joining && (
           <>
             <button type="button" className="btn-primary w-full" onClick={host}>
