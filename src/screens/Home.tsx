@@ -69,7 +69,7 @@ export function Home({ send, notify }: { send: Send; notify: (msg: string) => vo
         </label>
 
         <div>
-          <span className="label mb-1.5 block">For the 5s and 6s</span>
+          <span className="label mb-1.5 block">Your gender</span>
           <div className="grid grid-cols-2 gap-2">
             {(['boy', 'girl'] as const).map((g) => (
               <button
