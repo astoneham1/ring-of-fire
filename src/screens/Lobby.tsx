@@ -18,6 +18,7 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
   const link = `${location.origin}/?join=${state.code}`
   const onLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname)
   const rulesChanged = RANKS.some((r) => state.rules[r] !== DEFAULT_RULES[r])
+  const unusedRules = RULE_LIBRARY.filter((rule) => !RANKS.some((r) => state.rules[r] === rule.id))
 
   const share = async () => {
     try {
@@ -179,6 +180,12 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
             )
           })}
         </ul>
+        {unusedRules.length > 0 && (
+          <p className="mt-3 px-1 text-sm leading-relaxed text-smoke">
+            <span className="label mr-2">Not in use</span>
+            {unusedRules.map((r) => r.name).join(' · ')}
+          </p>
+        )}
       </section>
 
       <footer
