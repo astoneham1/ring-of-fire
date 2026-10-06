@@ -52,7 +52,7 @@ export function TableInfo({
           <ol className="space-y-2">
             {state.houseRules.map((rule, i) => (
               <li key={rule.id} className="flex items-start gap-3 text-sm">
-                <span className="mt-0.5 font-display font-bold text-gold">{i + 1}</span>
+                <span className="mt-0.5 w-5 shrink-0 text-right font-display font-bold text-gold tabular-nums">{i + 1}</span>
                 <span className="flex-1">
                   {rule.text}
                   {state.players.some((p) => p.id === rule.by) && (
