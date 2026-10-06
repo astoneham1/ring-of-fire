@@ -170,6 +170,8 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
         <ul className="panel mt-3 divide-y divide-char">
           {RANKS.map((rank) => {
             const rule = getRule(state.rules[rank])
+            // Same rule on more than one card is allowed, but flag it in case it was a slip.
+            const alsoOn = RANKS.filter((r) => r !== rank && state.rules[r] === state.rules[rank])
             return (
               <li key={rank} className="flex items-center gap-3 px-3 py-2.5">
                 <RankBadge rank={rank} />
@@ -188,11 +190,13 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
                     </select>
                     <span className="pointer-events-none absolute top-1/2 right-1 -translate-y-1/2 text-smoke">▾</span>
                     <p className="truncate text-xs text-smoke">{rule.summary}</p>
+                    {alsoOn.length > 0 && <DuplicateNote ranks={alsoOn} />}
                   </div>
                 ) : (
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold">{ruleName(rule, rank)}</p>
                     <p className="truncate text-xs text-smoke">{rule.summary}</p>
+                    {alsoOn.length > 0 && <DuplicateNote ranks={alsoOn} />}
                   </div>
                 )}
               </li>
@@ -267,4 +271,16 @@ function useHiddenBehind(target: RefObject<HTMLElement | null>, cover: RefObject
     }
   }, [target, cover])
   return hidden
+}
+
+function DuplicateNote({ ranks }: { ranks: string[] }) {
+  return (
+    <p className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-gold">
+      <svg viewBox="0 0 16 16" className="h-3 w-3 shrink-0" aria-hidden>
+        <path d="M8 1.5 15 14H1z" fill="currentColor" />
+        <path d="M8 6v3.5M8 11.4v.1" stroke="var(--color-ink)" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+      Also on {ranks.join(', ')}
+    </p>
+  )
 }
