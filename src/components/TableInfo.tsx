@@ -6,13 +6,25 @@ import { Avatar } from './Avatar.tsx'
 import { CardChip } from './PlayingCard.tsx'
 
 /** Everything that's in play: masters, mates, house rules and the last card. */
-export function TableInfo({ state, you, send }: { state: GameState; you: string; send: Send }) {
+export function TableInfo({
+  state,
+  you,
+  send,
+  emptyHint = true,
+}: {
+  state: GameState
+  you: string
+  send: Send
+  /** Show a placeholder line when nothing's in play yet. */
+  emptyHint?: boolean
+}) {
   const isHost = state.hostId === you
   const masters = (Object.entries(state.masters) as [MasterKey, string][]).filter(([, id]) => id)
   const last = state.history[0]
   const empty = masters.length === 0 && state.mateGroups.length === 0 && state.houseRules.length === 0 && !last
 
   if (empty) {
+    if (!emptyHint) return null
     return <p className="px-2 text-center text-sm text-smoke">Masters, mates and rules will show up here as the game goes on.</p>
   }
 
@@ -62,7 +74,9 @@ export function TableInfo({ state, you, send }: { state: GameState; you: string;
                 <span className="mt-0.5 font-display font-bold text-gold">{i + 1}</span>
                 <span className="flex-1">
                   {rule.text}
-                  <span className="block text-xs text-smoke">by {nameOf(state, rule.by, you)}</span>
+                  {state.players.some((p) => p.id === rule.by) && (
+                    <span className="block text-xs text-smoke">by {nameOf(state, rule.by, you)}</span>
+                  )}
                 </span>
                 {isHost && (
                   <button

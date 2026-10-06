@@ -7,6 +7,7 @@ import {
   type Drinker,
   type GameState,
   type Gender,
+  type MasterKey,
   type Player,
   type Rank,
 } from '../shared/types.ts'
@@ -75,6 +76,7 @@ export class Room {
       houseRules: [],
       cup: { drawn: 0, total: 0 },
       history: [],
+      endReason: null,
     }
     this.state.cup.total = this.cupTotal()
   }
@@ -129,16 +131,29 @@ export class Room {
     if (p) p.connected = connected
   }
 
-  /** Removes a player from the lobby. Mid-game, players can't be removed (seats are fixed). */
+  /** Takes a player out of the game for good. Mid-game, play skips over their seat. */
   remove(playerId: string) {
-    if (this.state.phase !== 'lobby') {
-      this.setConnected(playerId, false)
-      return
+    const s = this.state
+    const idx = s.players.findIndex((p) => p.id === playerId)
+    if (idx < 0) return
+
+    if (s.phase === 'playing') {
+      // If they leave mid-card, wrap the card up so the game doesn't get stuck on it.
+      if (s.current?.playerId === playerId) this.finishDraw()
+      if (s.turnId === playerId) s.turnId = s.players[(idx + 1) % s.players.length].id
     }
-    this.state.players = this.state.players.filter((p) => p.id !== playerId)
+
+    s.players.splice(idx, 1)
     for (const [token, id] of this.tokens) if (id === playerId) this.tokens.delete(token)
-    if (this.state.hostId === playerId && this.state.players.length) {
-      this.state.hostId = (this.state.players.find((p) => p.connected) ?? this.state.players[0]).id
+    s.mateGroups = s.mateGroups.map((g) => g.filter((id) => id !== playerId)).filter((g) => g.length > 1)
+    for (const key of Object.keys(s.masters) as MasterKey[]) if (s.masters[key] === playerId) delete s.masters[key]
+    if (s.current) s.current.drinkers = s.current.drinkers.filter((d) => d.id !== playerId)
+
+    if (s.hostId === playerId && s.players.length) {
+      s.hostId = (s.players.find((p) => p.connected) ?? s.players[0]).id
+    }
+    if (s.phase === 'playing' && (s.players.length < MIN_PLAYERS || s.cardsLeft === 0)) {
+      this.finish(s.cardsLeft === 0 ? 'deck' : 'players')
     }
   }
 
@@ -287,6 +302,30 @@ export class Room {
     this.state.houseRules = this.state.houseRules.filter((r) => r.id !== id)
   }
 
+  endGame(actorId: string) {
+    this.requireHost(actorId)
+    this.requirePhase('playing')
+    this.finish('host')
+  }
+
+  private finish(reason: NonNullable<GameState['endReason']>) {
+    const s = this.state
+    s.phase = 'finished'
+    s.endReason = reason
+    s.current = null
+    s.turnId = null
+  }
+
+  /** Moves the current card into history. */
+  private finishDraw() {
+    const s = this.state
+    const draw = s.current
+    if (!draw) return
+    s.history.unshift({ card: draw.card, playerId: draw.playerId, ruleId: draw.ruleId })
+    s.history.length = Math.min(s.history.length, HISTORY_LIMIT)
+    s.current = null
+  }
+
   done(actorId: string) {
     this.requirePhase('playing')
     const s = this.state
@@ -297,13 +336,10 @@ export class Room {
     // The host can skip a stuck pick on someone else's turn, but not dodge their own.
     if (draw.awaitingChoice && (actorId === draw.playerId || !isHost)) fail(getRule(draw.ruleId).action.kind === 'writeRule' ? 'Make your rule first' : 'Make your pick first')
 
-    s.history.unshift({ card: draw.card, playerId: draw.playerId, ruleId: draw.ruleId })
-    s.history.length = Math.min(s.history.length, HISTORY_LIMIT)
-    s.current = null
+    this.finishDraw()
 
     if (s.cardsLeft === 0) {
-      s.phase = 'finished'
-      s.turnId = null
+      this.finish('deck')
       return
     }
     const idx = s.players.findIndex((p) => p.id === draw.playerId)
@@ -326,6 +362,7 @@ export class Room {
     s.houseRules = []
     s.cup = { drawn: 0, total: this.cupTotal() }
     s.history = []
+    s.endReason = null
     // Anyone who dropped out during the last game gets cleared from the lobby.
     for (const p of s.players.filter((p) => !p.connected)) this.remove(p.id)
   }

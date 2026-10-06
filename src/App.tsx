@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Toast } from './components/Overlays.tsx'
 import { useGame } from './lib/useGame.ts'
 import { Finished } from './screens/Finished.tsx'
@@ -9,6 +9,16 @@ import { Lobby } from './screens/Lobby.tsx'
 
 export function App() {
   const { state, you, status, notice, resuming, send, notify } = useGame()
+
+  // Let everyone know when someone leaves or is removed.
+  const lastPlayers = useRef(state?.players)
+  useEffect(() => {
+    const before = lastPlayers.current
+    lastPlayers.current = state?.players
+    if (!state || !before || state.phase === 'lobby') return
+    const gone = before.filter((p) => !state.players.some((q) => q.id === p.id))
+    if (gone.length) notify(`${gone.map((p) => p.name).join(' and ')} left the game`)
+  }, [state, notify])
 
   // Once you're in a game, drop ?join=CODE so a refresh doesn't try to rejoin a stale code.
   useEffect(() => {

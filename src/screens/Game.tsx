@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { getRule } from '../../shared/rules.ts'
 import { RANKS, type GameState } from '../../shared/types.ts'
 import { DrawSheet } from '../components/DrawSheet.tsx'
-import { FinalCup, StarterReveal } from '../components/Overlays.tsx'
+import { ConfirmSheet, FinalCup, StarterReveal } from '../components/Overlays.tsx'
 import { RankBadge } from '../components/PlayingCard.tsx'
 import { Table } from '../components/Table.tsx'
 import { TableInfo } from '../components/TableInfo.tsx'
@@ -16,6 +16,7 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
   const draw = state.current
   const [hostDrawing, setHostDrawing] = useState(false)
   const [showRules, setShowRules] = useState(false)
+  const [confirmExit, setConfirmExit] = useState(false)
 
   // Intro spin only for a brand new game, not when reconnecting halfway through.
   const [introFor, setIntroFor] = useState<number | null>(() =>
@@ -37,14 +38,22 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
 
   return (
     <main className="safe-top safe-bottom mx-auto flex min-h-dvh max-w-md flex-col px-4">
-      <header className="flex items-center justify-between">
-        <span className="rounded-full border border-char px-3 py-1 font-display text-sm font-bold tracking-[0.15em] text-smoke">
-          {state.code}
-        </span>
+      <header className="grid grid-cols-[1fr_auto_1fr] items-center">
+        <button
+          type="button"
+          className="justify-self-start rounded-full border border-char px-3 py-1 text-sm font-semibold text-smoke"
+          onClick={() => setConfirmExit(true)}
+        >
+          {isHost ? 'End game' : 'Leave'}
+        </button>
         <span className="text-sm font-semibold text-smoke">
           <span className="text-cream">{state.cardsLeft}</span> cards left
         </span>
-        <button type="button" className="rounded-full border border-char px-3 py-1 text-sm font-semibold text-smoke" onClick={() => setShowRules(true)}>
+        <button
+          type="button"
+          className="justify-self-end rounded-full border border-char px-3 py-1 text-sm font-semibold text-smoke"
+          onClick={() => setShowRules(true)}
+        >
           Rules
         </button>
       </header>
@@ -115,6 +124,29 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
       </AnimatePresence>
 
       <AnimatePresence>{showRules && <RulesSheet state={state} onClose={() => setShowRules(false)} />}</AnimatePresence>
+
+      <AnimatePresence>
+        {confirmExit &&
+          (isHost ? (
+            <ConfirmSheet
+              title="End the game?"
+              body={`This ends it for everyone, with ${state.cardsLeft} cards still in the ring. You can start a new game with the same people afterwards.`}
+              confirmLabel="End game"
+              cancelLabel="Keep playing"
+              onConfirm={() => send({ type: 'endGame' })}
+              onCancel={() => setConfirmExit(false)}
+            />
+          ) : (
+            <ConfirmSheet
+              title="Leave the game?"
+              body="You'll lose your seat and play will skip you. You can't rejoin this game once you've left."
+              confirmLabel="Leave"
+              cancelLabel="Stay"
+              onConfirm={() => send({ type: 'leave' })}
+              onCancel={() => setConfirmExit(false)}
+            />
+          ))}
+      </AnimatePresence>
     </main>
   )
 }

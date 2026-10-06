@@ -151,3 +151,50 @@ export function Toast({ message }: { message: { id: number; message: string } | 
     </div>
   )
 }
+
+/** A bottom sheet asking "are you sure?" before something you can't undo. */
+export function ConfirmSheet({
+  title,
+  body,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+}: {
+  title: string
+  body: string
+  confirmLabel: string
+  cancelLabel: string
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <motion.div
+      className="fixed inset-0 z-[45] flex flex-col justify-end bg-ink/70 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onCancel}
+    >
+      <motion.section
+        className="safe-bottom mx-auto w-full max-w-md rounded-t-[32px] border-t border-ash bg-coal px-5 pt-6"
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 260, damping: 30 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="font-display text-2xl font-bold">{title}</h2>
+        <p className="mt-2 text-cream/80">{body}</p>
+        <div className="mt-6 flex flex-col gap-1">
+          <button type="button" className="btn w-full bg-flame text-cream" onClick={onConfirm}>
+            {confirmLabel}
+          </button>
+          <button type="button" className="btn-ghost w-full" onClick={onCancel}>
+            {cancelLabel}
+          </button>
+        </div>
+      </motion.section>
+    </motion.div>
+  )
+}

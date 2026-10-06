@@ -83,6 +83,8 @@ export interface GameState {
   houseRules: HouseRule[]
   cup: { drawn: number; total: number }
   history: HistoryEntry[]
+  /** Why the game finished: the deck ran out, the host ended it, or too few players were left. */
+  endReason: 'deck' | 'host' | 'players' | null
 }
 
 export type ClientMessage =
@@ -100,6 +102,7 @@ export type ClientMessage =
   | { type: 'writeRule'; text: string }
   | { type: 'removeHouseRule'; id: string }
   | { type: 'done' }
+  | { type: 'endGame' }
   | { type: 'newGame' }
 
 export type ServerMessage =
