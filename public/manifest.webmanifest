@@ -1,0 +1,9 @@
+{
+  "name": "Ring of Fire",
+  "short_name": "Ring of Fire",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#140e0c",
+  "theme_color": "#140e0c",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
