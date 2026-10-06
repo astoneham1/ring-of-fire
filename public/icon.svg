@@ -1,5 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#140e0c"/>
-  <circle cx="32" cy="32" r="19" fill="none" stroke="#ff7a2f" stroke-width="5" stroke-dasharray="6 3.5"/>
-  <path d="M25 26h14l-2 14a3 3 0 0 1-3 2.5h-4A3 3 0 0 1 27 40z" fill="#f4c06a"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="30%" r="80%">
+      <stop offset="0" stop-color="#3a1d14"/><stop offset="1" stop-color="#140e0c"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0.55" stop-color="#ff7a2f" stop-opacity="0"/>
+      <stop offset="0.8" stop-color="#ff7a2f" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#ff7a2f" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="beer" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#f4c06a"/><stop offset="1" stop-color="#d9792a"/>
+    </linearGradient>
+    <pattern id="weave" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="12" height="12" fill="#9e221d"/><rect width="4" height="12" fill="#ffffff" fill-opacity="0.1"/>
+    </pattern>
+  </defs><clipPath id="tile"><rect width="1024" height="1024" rx="224"/></clipPath><g clip-path="url(#tile)"><rect width="1024" height="1024" fill="url(#bg)"/>
+  <circle cx="512" cy="512" r="390" fill="url(#glow)"/>
+  <g transform="translate(500.7 188.3) rotate(-6.6)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(596.2 202.0) rotate(15.9)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(682.6 239.5) rotate(37.7)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(754.9 302.8) rotate(52.3)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(800.8 387.8) rotate(64.0)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(830.1 471.0) rotate(72.8)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(825.7 561.2) rotate(108.2)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(793.6 648.0) rotate(116.1)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(748.0 729.0) rotate(135.8)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(685.6 785.3) rotate(156.6)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(603.6 814.1) rotate(170.5)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(515.7 825.1) rotate(174.9)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(424.7 814.8) rotate(205.7)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(337.3 781.5) rotate(221.3)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(280.5 725.4) rotate(228.7)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(223.7 643.5) rotate(238.7)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(202.3 547.5) rotate(260.5)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(194.5 469.9) rotate(286.9)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(227.1 381.5) rotate(292.5)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(270.0 308.6) rotate(308.4)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(336.7 246.1) rotate(329.1)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(415.0 203.2) rotate(341.6)"><rect x="-40" y="-57" width="80" height="114" rx="10" fill="#9e221d" stroke="#fbf5ec" stroke-width="8"/><rect x="-29" y="-46" width="58" height="92" rx="4" fill="url(#weave)"/></g>
+  <g transform="translate(512 520) scale(1.22)">
+    <clipPath id="glass"><path d="M-104 -132 H104 L84 118 Q82 132 68 132 H-68 Q-82 132 -84 118 Z"/></clipPath>
+    <g clip-path="url(#glass)">
+      <rect x="-120" y="-140" width="240" height="280" fill="#ffffff" fill-opacity="0.06"/>
+      <rect x="-120" y="-96" width="240" height="236" fill="url(#beer)"/>
+      <rect x="-120" y="-118" width="240" height="30" fill="#fbf5ec"/>
+      <circle cx="-88" cy="-118" r="18" fill="#fbf5ec"/><circle cx="-56" cy="-124" r="20" fill="#fbf5ec"/>
+      <circle cx="-22" cy="-120" r="19" fill="#fbf5ec"/><circle cx="12" cy="-126" r="21" fill="#fbf5ec"/>
+      <circle cx="46" cy="-120" r="19" fill="#fbf5ec"/><circle cx="80" cy="-124" r="20" fill="#fbf5ec"/>
+      <rect x="-120" y="-88" width="240" height="5" fill="#e9b45c" fill-opacity="0.6"/>
+    </g>
+    <path d="M-104 -132 H104 L84 118 Q82 132 68 132 H-68 Q-82 132 -84 118 Z" fill="none" stroke="#f6ede2" stroke-opacity="0.75" stroke-width="9" stroke-linejoin="round"/>
+    <path d="M-74 -104 L-58 100" stroke="#ffffff" stroke-opacity="0.22" stroke-width="12" stroke-linecap="round"/>
+  </g></g></svg>

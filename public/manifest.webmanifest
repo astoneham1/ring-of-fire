@@ -1,9 +1,19 @@
 {
+  "id": "/",
   "name": "Ring of Fire",
   "short_name": "Ring of Fire",
+  "description": "The Ring of Fire drinking game, for when nobody brought the cards.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#140e0c",
   "theme_color": "#140e0c",
-  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
 }
