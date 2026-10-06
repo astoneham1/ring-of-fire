@@ -234,8 +234,9 @@ export class Room {
         break
       }
       case 'chooseMate':
-        // Nobody left to pick if the whole table is already one big mate group.
         draw.awaitingChoice = this.matesOf(drawerId).length < s.players.length - 1
+        // The whole table is already one mate group, so there's nobody to pick: the drawer just drinks.
+        if (!draw.awaitingChoice) draw.drinkers = [{ id: drawerId }]
         break
       case 'chooseDrinker':
       case 'writeRule':

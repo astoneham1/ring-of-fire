@@ -155,7 +155,12 @@ function Outcome({ state, draw, you, canAct, send }: Props & { canAct: boolean }
       )
     } else if (action.kind === 'chooseMate') {
       // Only happens when the whole table is already linked, so there's nobody left to pick.
-      blocks.push(<Callout key="mates">Everyone's already mates. Nobody new to pick.</Callout>)
+      blocks.push(
+        <Callout key="mates">
+          Everyone's already mates, so <b>{draw.playerId === you ? 'you' : drawerName}</b> {draw.playerId === you ? 'drink' : 'drinks'}{' '}
+          instead.
+        </Callout>,
+      )
     }
   }
 
