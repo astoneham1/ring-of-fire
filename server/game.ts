@@ -74,6 +74,8 @@ export class Room {
 
   static restore(snapshot: RoomSnapshot): Room {
     const room: Room = Object.create(Room.prototype)
+    // Rooms saved by older versions may be missing newer fields.
+    snapshot.state.kicked ??= []
     Object.assign(room, { state: snapshot.state, deck: snapshot.deck, tokens: new Map(snapshot.tokens) })
     return room
   }
@@ -102,6 +104,7 @@ export class Room {
       cup: { drawn: 0, total: 0 },
       history: [],
       endReason: null,
+      kicked: [],
     }
     this.state.cup.total = this.cupTotal()
   }
@@ -186,6 +189,7 @@ export class Room {
     this.requirePhase('lobby')
     if (playerId === actorId) fail("You can't remove yourself")
     this.remove(playerId)
+    this.state.kicked = [...this.state.kicked, playerId].slice(-HISTORY_LIMIT)
   }
 
   /** Hands the host role to someone else in the lobby. */

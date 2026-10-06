@@ -18,9 +18,13 @@ export function App() {
     if (!state || !before || before.code !== state.code) return
     const joined = state.players.filter((p) => !before.players.some((q) => q.id === p.id))
     const gone = before.players.filter((p) => !state.players.some((q) => q.id === p.id))
+    const removed = gone.filter((p) => state.kicked.includes(p.id))
+    const left = gone.filter((p) => !state.kicked.includes(p.id))
+    const names = (players: typeof gone) => players.map((p) => p.name).join(' and ')
     const messages = [
-      joined.length > 0 && `${joined.map((p) => p.name).join(' and ')} joined`,
-      gone.length > 0 && `${gone.map((p) => p.name).join(' and ')} irish exited`,
+      joined.length > 0 && `${names(joined)} joined`,
+      left.length > 0 && `${names(left)} irish exited`,
+      removed.length > 0 && `${names(removed)} ${removed.length > 1 ? 'were' : 'was'} removed`,
       before.hostId !== state.hostId &&
         (state.hostId === you ? "You're now the host" : `${state.players.find((p) => p.id === state.hostId)?.name} is now the host`),
     ].filter(Boolean)

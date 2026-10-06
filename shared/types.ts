@@ -87,6 +87,8 @@ export interface GameState {
   history: HistoryEntry[]
   /** Why the game finished: the deck ran out, the host ended it, or too few players were left. */
   endReason: 'deck' | 'host' | 'players' | null
+  /** Players the host removed, so phones can say "removed" rather than "left". */
+  kicked: string[]
 }
 
 export type ClientMessage =
