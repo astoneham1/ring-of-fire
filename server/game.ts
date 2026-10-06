@@ -7,7 +7,6 @@ import {
   type Drinker,
   type GameState,
   type Gender,
-  type MasterKey,
   type Player,
   type Rank,
 } from '../shared/types.ts'
@@ -72,7 +71,6 @@ export class Room {
       turnId: null,
       current: null,
       mateGroups: [],
-      masters: {},
       houseRules: [],
       cup: { drawn: 0, total: 0 },
       history: [],
@@ -146,7 +144,6 @@ export class Room {
     s.players.splice(idx, 1)
     for (const [token, id] of this.tokens) if (id === playerId) this.tokens.delete(token)
     s.mateGroups = s.mateGroups.map((g) => g.filter((id) => id !== playerId)).filter((g) => g.length > 1)
-    for (const key of Object.keys(s.masters) as MasterKey[]) if (s.masters[key] === playerId) delete s.masters[key]
     if (s.current) s.current.drinkers = s.current.drinkers.filter((d) => d.id !== playerId)
 
     if (s.hostId === playerId && s.players.length) {
@@ -244,10 +241,6 @@ export class Room {
       case 'writeRule':
         draw.awaitingChoice = true
         break
-      case 'master':
-        draw.previousMasterId = s.masters[rule.action.key]
-        s.masters[rule.action.key] = drawerId
-        break
       case 'kingsCup': {
         s.cup.drawn++
         draw.cupNumber = s.cup.drawn
@@ -255,6 +248,7 @@ export class Room {
         if (draw.finalCup) draw.drinkers = this.withMates([drawerId])
         break
       }
+      case 'master':
       case 'none':
         break
     }
@@ -376,7 +370,6 @@ export class Room {
     s.turnId = null
     s.current = null
     s.mateGroups = []
-    s.masters = {}
     s.houseRules = []
     s.cup = { drawn: 0, total: this.cupTotal() }
     s.history = []

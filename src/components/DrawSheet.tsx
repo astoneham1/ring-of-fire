@@ -128,11 +128,9 @@ function Outcome({ state, draw, you, canAct, send }: Props & { canAct: boolean }
   }
 
   if (action.kind === 'master') {
-    const prev = draw.previousMasterId && draw.previousMasterId !== draw.playerId ? nameOf(state, draw.previousMasterId, you) : null
     blocks.push(
       <Callout key="master">
-        <b>{drawerName}</b> {draw.playerId === you ? 'are' : 'is'} now {MASTER_TITLES[action.key]}
-        {prev && <span className="text-smoke"> (taking over from {prev})</span>}.
+        <b>{drawerName}</b> {draw.playerId === you ? 'are' : 'is'} the {MASTER_TITLES[action.key]}.
       </Callout>,
     )
   }

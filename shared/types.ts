@@ -41,8 +41,6 @@ export interface Draw {
   /** For King's Cup: which cup card this was (1-based), and whether it's the last one. */
   cupNumber?: number
   finalCup?: boolean
-  /** For master rules: who held the title before this draw. */
-  previousMasterId?: string
 }
 
 export interface HouseRule {
@@ -82,7 +80,6 @@ export interface GameState {
   turnId: string | null
   current: Draw | null
   mateGroups: string[][]
-  masters: Partial<Record<MasterKey, string>>
   houseRules: HouseRule[]
   cup: { drawn: number; total: number }
   history: HistoryEntry[]

@@ -61,7 +61,7 @@ export const RULE_LIBRARY: RuleDef[] = [
     name: 'Floor',
     summary: 'Last finger on the floor drinks',
     description:
-      "{You're} the Floor Master. At any moment, {you} can put a finger on the floor. Everyone has to follow, and the last one to do it drinks. Lasts until someone else draws Floor.",
+      "At any moment, {you} can put a finger on the floor. Everyone has to follow, and the last one to do it drinks. Lasts until someone else draws Floor.",
     action: { kind: 'master', key: 'floor' },
   },
   {
@@ -83,7 +83,7 @@ export const RULE_LIBRARY: RuleDef[] = [
     name: 'Heaven',
     summary: 'Last hand to the sky drinks',
     description:
-      "{You're} the Heaven Master. At any moment, {you} can point to the sky. Everyone has to follow, and the last one to do it drinks. Lasts until someone else draws Heaven.",
+      "At any moment, {you} can point to the sky. Everyone has to follow, and the last one to do it drinks. Lasts until someone else draws Heaven.",
     action: { kind: 'master', key: 'heaven' },
   },
   {
@@ -149,7 +149,7 @@ export const RULE_LIBRARY: RuleDef[] = [
     name: 'Thumb Master',
     summary: 'Last thumb on the table drinks',
     description:
-      "{You're} the Thumb Master. At any moment, {you} can put a thumb on the table. Everyone has to follow, and the last one to do it drinks. Lasts until someone else draws Thumb Master.",
+      "At any moment, {you} can put a thumb on the table. Everyone has to follow, and the last one to do it drinks. Lasts until someone else draws Thumb Master.",
     action: { kind: 'master', key: 'thumb' },
   },
   {

@@ -1,11 +1,10 @@
-import { MASTER_TITLES, getRule } from '../../shared/rules.ts'
-import type { GameState, MasterKey } from '../../shared/types.ts'
+import { getRule } from '../../shared/rules.ts'
+import type { GameState } from '../../shared/types.ts'
 import { nameOf } from '../lib/players.ts'
 import type { Send } from '../lib/useGame.ts'
-import { Avatar } from './Avatar.tsx'
 import { CardChip } from './PlayingCard.tsx'
 
-/** Everything that's in play: masters, mates, house rules and the last card. */
+/** Everything that's in play: mates, house rules and the last card. */
 export function TableInfo({
   state,
   you,
@@ -19,34 +18,16 @@ export function TableInfo({
   emptyHint?: boolean
 }) {
   const isHost = state.hostId === you
-  const masters = (Object.entries(state.masters) as [MasterKey, string][]).filter(([, id]) => id)
   const last = state.history[0]
-  const empty = masters.length === 0 && state.mateGroups.length === 0 && state.houseRules.length === 0 && !last
+  const empty = state.mateGroups.length === 0 && state.houseRules.length === 0 && !last
 
   if (empty) {
     if (!emptyHint) return null
-    return <p className="px-2 text-center text-sm text-smoke">Masters, mates and rules will show up here as the game goes on.</p>
+    return <p className="px-2 text-center text-sm text-smoke">Mates and rules will show up here as the game goes on.</p>
   }
 
   return (
     <div className="space-y-3">
-      {masters.length > 0 && (
-        <div className="grid grid-cols-2 gap-2">
-          {masters.map(([key, id]) => {
-            const p = state.players.find((x) => x.id === id)
-            return (
-              <div key={key} className="panel flex items-center gap-2.5 p-3">
-                {p && <Avatar player={p} size={32} />}
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold tracking-wide text-smoke uppercase">{MASTER_TITLES[key]}</p>
-                  <p className="truncate font-semibold">{nameOf(state, id, you)}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
       {state.mateGroups.length > 0 && (
         <div className="panel p-4">
           <p className="label mb-2">Mates</p>
