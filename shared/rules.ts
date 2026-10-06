@@ -121,7 +121,7 @@ export const RULE_LIBRARY: RuleDef[] = [
   },
   {
     id: 'questionRound',
-    name: 'Question Master',
+    name: 'Question Master (truth or chop)',
     summary: 'Everyone answers, or downs their drink',
     description:
       '{You} must ask a question. Going clockwise, everyone has to answer it. Fail to answer and you down your whole drink.',
@@ -154,10 +154,10 @@ export const RULE_LIBRARY: RuleDef[] = [
   },
   {
     id: 'questionMaster',
-    name: 'Question Master (classic)',
+    name: 'Question Master',
     summary: 'Anyone who answers your questions drinks',
     description:
-      "{You're} the Question Master. Until someone else draws this card, anyone who answers one of {your} questions drinks.",
+      'Until someone else draws this card, anyone who answers one of {your} questions drinks.',
     action: { kind: 'master', key: 'question' },
   },
   {
