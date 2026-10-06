@@ -156,7 +156,7 @@ export function Table({
         style={{ width: `${CUP_SIZE * 100}%`, left: '50%', top: '50%', translate: '-50% -55%' }}
       >
         <Cup fill={cupFill} className="w-full" />
-        {cupLabel && <span className="mt-0.5 text-[11px] font-semibold tracking-wide text-smoke">{cupLabel}</span>}
+        {cupLabel && <span className="mt-0.5 text-[11px] font-semibold tracking-wide whitespace-nowrap text-smoke">{cupLabel}</span>}
       </div>
 
       {/* Pointer from the cup to whoever's turn it is. */}

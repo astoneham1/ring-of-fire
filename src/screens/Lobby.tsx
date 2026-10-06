@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { QRCodeSVG } from 'qrcode.react'
-import { useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { DEFAULT_RULES, RULE_LIBRARY, getRule } from '../../shared/rules.ts'
 import { RANKS, type GameState } from '../../shared/types.ts'
 import { RankBadge } from '../components/PlayingCard.tsx'
@@ -12,6 +12,9 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
   const isHost = state.hostId === you
   const [selected, setSelected] = useState<string | null>(null)
   const [showQr, setShowQr] = useState(false)
+  const rulesRef = useRef<HTMLHeadingElement>(null)
+  const footerRef = useRef<HTMLElement>(null)
+  const rulesHidden = useHiddenBehind(rulesRef, footerRef)
   const link = `${location.origin}/?join=${state.code}`
   const onLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname)
   const rulesChanged = RANKS.some((r) => state.rules[r] !== DEFAULT_RULES[r])
@@ -78,17 +81,18 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
         </p>
       )}
 
-      <section className="mt-6">
+      <section className="mt-5">
         <div className="flex items-baseline justify-between">
           <h2 className="font-display text-xl font-bold">Seats</h2>
           <span className="text-sm text-smoke">{state.players.length} in</span>
         </div>
         <p className="mt-1 text-sm text-smoke">
           {isHost
-            ? 'Tap two people to swap them so the circle matches where everyone is sitting. Play goes clockwise.'
-            : 'The host is arranging the circle to match where everyone is sitting.'}
+            ? 'Tap two people to swap their seats.'
+            : 'The host is arranging the seats.'}
         </p>
-        <div className="mx-auto mt-2 max-w-[380px]">
+        {/* Sized by screen height too, so the house rules peek out above the footer. */}
+        <div className="mx-auto mt-1" style={{ width: 'min(100%, 380px, max(260px, calc(100dvh - 380px)))' }}>
           <Table
             players={state.players}
             viewerId={you}
@@ -132,9 +136,11 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
         </AnimatePresence>
       </section>
 
-      <section className="mt-8">
+      <section className="mt-6">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-xl font-bold">House rules</h2>
+          <h2 ref={rulesRef} className="scroll-mt-4 font-display text-xl font-bold">
+            House rules
+          </h2>
           {isHost && rulesChanged && (
             <button type="button" className="text-sm font-semibold text-ember" onClick={() => send({ type: 'resetRules' })}>
               Reset
@@ -175,7 +181,10 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
         </ul>
       </section>
 
-      <footer className="safe-bottom fixed inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/95 to-transparent px-4 pt-8">
+      <footer
+        ref={footerRef}
+        className="safe-bottom fixed inset-x-0 bottom-0 bg-gradient-to-t from-ink from-75% to-transparent px-4 pt-8"
+      >
         <div className="mx-auto flex max-w-md flex-col gap-1">
           {isHost ? (
             <button
@@ -191,11 +200,45 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
               Waiting for {nameOf(state, state.hostId)} to start…
             </div>
           )}
-          <button type="button" className="btn-ghost w-full" onClick={() => send({ type: 'leave' })}>
-            Leave game
-          </button>
+          <div className="flex justify-center">
+            <button type="button" className="btn-ghost" onClick={() => send({ type: 'leave' })}>
+              Leave game
+            </button>
+            {rulesHidden && (
+              <button
+                type="button"
+                className="btn-ghost text-cream"
+                onClick={() => rulesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              >
+                House rules ↓
+              </button>
+            )}
+          </div>
         </div>
       </footer>
     </main>
   )
+}
+
+/** True while `target` sits below the top of `cover` (i.e. hidden behind the fixed footer). */
+function useHiddenBehind(target: RefObject<HTMLElement | null>, cover: RefObject<HTMLElement | null>) {
+  const [hidden, setHidden] = useState(false)
+  useEffect(() => {
+    const check = () => {
+      if (!target.current || !cover.current) return
+      setHidden(target.current.getBoundingClientRect().bottom > cover.current.getBoundingClientRect().top + 24)
+    }
+    check()
+    window.addEventListener('scroll', check, { passive: true })
+    window.addEventListener('resize', check)
+    // Content above can change height (QR code, players joining), so re-check on layout changes too.
+    const observer = new ResizeObserver(check)
+    observer.observe(document.body)
+    return () => {
+      window.removeEventListener('scroll', check)
+      window.removeEventListener('resize', check)
+      observer.disconnect()
+    }
+  }, [target, cover])
+  return hidden
 }
