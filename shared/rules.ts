@@ -139,9 +139,9 @@ export const RULE_LIBRARY: RuleDef[] = [
   // Alternatives that aren't a default for any card.
   {
     id: 'social',
-    name: 'Social',
-    summary: 'Everyone drinks',
-    description: 'Everyone drinks. Cheers.',
+    name: 'Social chin',
+    summary: 'Everyone has a social chin',
+    description: 'Social chin! Everyone drinks.',
     action: { kind: 'everyone' },
   },
   {
