@@ -6,6 +6,7 @@ import { RANKS, type GameState } from '../../shared/types.ts'
 import { RankBadge } from '../components/PlayingCard.tsx'
 import { Table } from '../components/Table.tsx'
 import { nameOf } from '../lib/players.ts'
+import { saveLastRules } from '../lib/storage.ts'
 import type { Send } from '../lib/useGame.ts'
 
 export function Lobby({ state, you, send, notify }: { state: GameState; you: string; send: Send; notify: (m: string) => void }) {
@@ -221,7 +222,11 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
               type="button"
               className="btn-primary w-full"
               disabled={state.players.length < 2}
-              onClick={() => send({ type: 'start' })}
+              onClick={() => {
+                // Remember these rules for the next game this phone hosts.
+                saveLastRules(state.rules)
+                send({ type: 'start' })
+              }}
             >
               {state.players.length < 2 ? 'Waiting for players…' : `Start with ${state.players.length} players`}
             </button>

@@ -9,6 +9,7 @@ import {
   type Gender,
   type Player,
   type Rank,
+  type RuleConfig,
 } from '../shared/types.ts'
 
 export const MIN_PLAYERS = 2
@@ -54,6 +55,16 @@ export interface RoomSnapshot {
   tokens: [string, string][]
 }
 
+/** The host's saved rules where they're still valid, defaults for everything else. */
+function startingRules(saved?: Partial<RuleConfig>): RuleConfig {
+  const rules = { ...DEFAULT_RULES }
+  for (const rank of RANKS) {
+    const id = saved?.[rank]
+    if (typeof id === 'string' && isRuleId(id)) rules[rank] = id
+  }
+  return rules
+}
+
 export class Room {
   readonly state: GameState
   /** The face-down card at each ring position. Never sent to clients. */
@@ -71,7 +82,7 @@ export class Room {
     return { state: this.state, deck: this.deck, tokens: [...this.tokens] }
   }
 
-  constructor(code: string, hostToken: string, hostName: string, hostGender: Gender) {
+  constructor(code: string, hostToken: string, hostName: string, hostGender: Gender, rules?: Partial<RuleConfig>) {
     const host: Player = { id: randomId(), name: cleanName(hostName), gender: hostGender, connected: true }
     this.tokens.set(hostToken, host.id)
     this.state = {
@@ -80,7 +91,7 @@ export class Room {
       phase: 'lobby',
       hostId: host.id,
       players: [host],
-      rules: { ...DEFAULT_RULES },
+      rules: startingRules(rules),
       taken: Array(DECK_SIZE).fill(false),
       cardsLeft: DECK_SIZE,
       starterId: null,

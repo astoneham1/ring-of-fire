@@ -1,4 +1,4 @@
-import type { Gender } from '../../shared/types.ts'
+import type { Gender, RuleConfig } from '../../shared/types.ts'
 
 // Storage can throw (private mode, blocked site data), so every access is guarded.
 function read(key: string): string | null {
@@ -59,4 +59,18 @@ export function loadRoomCode(): string | null {
 
 export function saveRoomCode(code: string | null) {
   write('rof:room', code)
+}
+
+/** The card rules this phone last started a game with, so the next game it hosts begins with them. */
+export function loadLastRules(): Partial<RuleConfig> | undefined {
+  try {
+    const parsed = JSON.parse(read('rof:rules') ?? 'null')
+    return parsed && typeof parsed === 'object' ? parsed : undefined
+  } catch {
+    return undefined
+  }
+}
+
+export function saveLastRules(rules: RuleConfig) {
+  write('rof:rules', JSON.stringify(rules))
 }

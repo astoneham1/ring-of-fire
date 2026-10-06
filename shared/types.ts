@@ -90,7 +90,8 @@ export interface GameState {
 }
 
 export type ClientMessage =
-  | { type: 'create'; token: string; name: string; gender: Gender }
+  /** `rules` are the card rules the host last played with on this phone, if any. */
+  | { type: 'create'; token: string; name: string; gender: Gender; rules?: Partial<RuleConfig> }
   | { type: 'join'; token: string; code: string; name: string; gender: Gender }
   | { type: 'resume'; token: string; code: string }
   | { type: 'leave' }

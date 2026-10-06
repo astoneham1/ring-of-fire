@@ -185,7 +185,7 @@ export class RoomDO extends DurableObject<Env> {
         }
         const code = await this.ctx.storage.get<string>('code')
         if (!code) throw new GameError("Couldn't create the game. Try again")
-        this.room = new Room(code, msg.token, msg.name, msg.gender)
+        this.room = new Room(code, msg.token, msg.name, msg.gender, msg.rules)
         this.attach(ws, this.room, this.room.hostId)
         return
       }

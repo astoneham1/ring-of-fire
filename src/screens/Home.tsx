@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { Gender } from '../../shared/types.ts'
 import { Table } from '../components/Table.tsx'
-import { deviceToken, loadProfile, saveProfile } from '../lib/storage.ts'
+import { deviceToken, loadLastRules, loadProfile, saveProfile } from '../lib/storage.ts'
 import type { Send } from '../lib/useGame.ts'
 
 function codeFromUrl(): string {
@@ -30,7 +30,7 @@ export function Home({ send, notify }: { send: Send; notify: (msg: string) => vo
   }
 
   const host = () => {
-    if (ready()) send({ type: 'create', token: deviceToken(), name, gender: gender! })
+    if (ready()) send({ type: 'create', token: deviceToken(), name, gender: gender!, rules: loadLastRules() })
   }
 
   const join = (e?: FormEvent) => {
