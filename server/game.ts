@@ -267,6 +267,7 @@ export class Room {
         break
       }
       case 'master':
+      case 'timer':
       case 'none':
         break
     }
@@ -309,6 +310,17 @@ export class Room {
     draw.ruleText = clean
     draw.awaitingChoice = false
     s.houseRules.push({ id: randomId(), text: clean, by: draw.playerId })
+  }
+
+  /** Starts the countdown on a timer card (e.g. Hotseat). */
+  startTimer(actorId: string) {
+    this.requirePhase('playing')
+    const draw = this.state.current
+    const action = draw && getRule(draw.ruleId).action
+    if (!draw || action?.kind !== 'timer') fail('Nothing to time')
+    if (actorId !== draw.playerId) fail("It's not your card")
+    if (draw.timerEndsAt) return
+    draw.timerEndsAt = Date.now() + action.seconds * 1000
   }
 
   removeHouseRule(actorId: string, id: string) {

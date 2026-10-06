@@ -6,6 +6,13 @@ const WS_BASE = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.h
 /** Phones and proxies drop quiet sockets, so ping every so often. The server answers without waking up. */
 const KEEPALIVE_MS = 25_000
 
+let clockOffset = 0
+
+/** The server's current time, as best we can tell. Use this for shared countdowns. */
+export function serverNow(): number {
+  return Date.now() + clockOffset
+}
+
 export type ConnectionStatus = 'idle' | 'connecting' | 'open' | 'closed'
 
 export interface Notice {
@@ -66,6 +73,7 @@ export function useGame() {
         if (event.data === 'pong') return
         const msg = JSON.parse(event.data) as ServerMessage
         if (msg.type === 'state') {
+          clockOffset = msg.now - Date.now()
           setState(msg.state)
           setYou(msg.you)
           saveRoomCode(msg.state.code)

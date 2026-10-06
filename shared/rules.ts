@@ -10,6 +10,8 @@ export type RuleAction =
   | { kind: 'master'; key: MasterKey }
   | { kind: 'writeRule' }
   | { kind: 'kingsCup' }
+  /** A countdown the drawer starts, shown on every phone. */
+  | { kind: 'timer'; seconds: number }
 
 export interface RuleDef {
   id: string
@@ -168,6 +170,14 @@ export const RULE_LIBRARY: RuleDef[] = [
       "Starting with {you} and going clockwise, everyone says something they've never done. Anyone who has done it drinks.",
     action: { kind: 'none' },
     goesRound: true,
+  },
+  {
+    id: 'hotseat',
+    name: 'Hotseat',
+    summary: 'Answer anything for a minute, or drink',
+    description:
+      "{You're} in the hotseat for one minute. Everyone can ask anything, and every question has to be answered. Refuse to answer and that's a drink.",
+    action: { kind: 'timer', seconds: 60 },
   },
 ]
 

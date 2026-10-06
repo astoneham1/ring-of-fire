@@ -41,6 +41,8 @@ export interface Draw {
   /** For King's Cup: which cup card this was (1-based), and whether it's the last one. */
   cupNumber?: number
   finalCup?: boolean
+  /** For timer rules: when the countdown ends (server clock, ms). Unset until the drawer starts it. */
+  timerEndsAt?: number
 }
 
 export interface HouseRule {
@@ -102,11 +104,13 @@ export type ClientMessage =
   | { type: 'writeRule'; text: string }
   | { type: 'removeHouseRule'; id: string }
   | { type: 'done' }
+  | { type: 'startTimer' }
   | { type: 'skip' }
   | { type: 'endGame' }
   | { type: 'newGame' }
 
 export type ServerMessage =
-  | { type: 'state'; state: GameState; you: string }
+  /** `now` is the server's clock, so phones can line up shared countdowns. */
+  | { type: 'state'; state: GameState; you: string; now: number }
   | { type: 'error'; message: string; fatal?: boolean }
   | { type: 'left' }

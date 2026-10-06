@@ -1,9 +1,9 @@
 import { motion } from 'motion/react'
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { MASTER_TITLES, RANK_NAMES, describe, getRule } from '../../shared/rules.ts'
 import type { Draw, GameState } from '../../shared/types.ts'
-import { clockwiseFrom, matesOf, nameOf } from '../lib/players.ts'
-import type { Send } from '../lib/useGame.ts'
+import { clockwiseFrom, matesOf, nameOf, vibrate } from '../lib/players.ts'
+import { serverNow, type Send } from '../lib/useGame.ts'
 import { Avatar, PlayerTag } from './Avatar.tsx'
 import { HostSkip } from './HostSkip.tsx'
 import { CardBack, CardFace } from './PlayingCard.tsx'
@@ -22,6 +22,8 @@ export function DrawSheet({ state, draw, you, send }: Props) {
   const drawerName = nameOf(state, draw.playerId)
   // Picking someone ends the turn by itself, so there's no Done button for it.
   const finishesOnPick = (rule.action.kind === 'chooseDrinker' || rule.action.kind === 'chooseMate') && draw.awaitingChoice
+  // Timer cards (Hotseat) start the clock from the main button, so it's always in reach.
+  const needsTimerStart = rule.action.kind === 'timer' && !draw.timerEndsAt
 
   return (
     <motion.div
@@ -55,7 +57,12 @@ export function DrawSheet({ state, draw, you, send }: Props) {
 
         <div className="sticky bottom-0 mt-6 bg-coal pt-2">
           {isDrawer ? (
-            !finishesOnPick && (
+            !finishesOnPick &&
+            (needsTimerStart ? (
+              <button type="button" className="btn-primary w-full" onClick={() => send({ type: 'startTimer' })}>
+                Start the timer
+              </button>
+            ) : (
               <button
                 type="button"
                 className="btn-primary w-full"
@@ -64,7 +71,7 @@ export function DrawSheet({ state, draw, you, send }: Props) {
               >
                 Done
               </button>
-            )
+            ))
           ) : (
             <>
               {/* While they're picking, the outcome above already says what we're waiting for. */}
@@ -164,6 +171,12 @@ function Outcome({ state, draw, you, canAct, send }: Props & { canAct: boolean }
     }
   }
 
+  if (action.kind === 'timer') {
+    blocks.push(
+      <Countdown key="timer" endsAt={draw.timerEndsAt} seconds={action.seconds} isDrawer={canAct} drawerName={drawer.name} />,
+    )
+  }
+
   if (action.kind === 'writeRule') {
     blocks.push(
       draw.awaitingChoice ? (
@@ -216,6 +229,83 @@ function Outcome({ state, draw, you, canAct, send }: Props & { canAct: boolean }
   }
 
   return <>{blocks}</>
+}
+
+/** A shared countdown (e.g. Hotseat). The server sets when it ends; every phone counts to that. */
+function Countdown({
+  endsAt,
+  seconds,
+  isDrawer,
+  drawerName,
+}: {
+  endsAt?: number
+  seconds: number
+  isDrawer: boolean
+  drawerName: string
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [now, setNow] = useState(serverNow)
+  useEffect(() => {
+    if (!endsAt) return
+    // Read the clock straight away: a stale reading would briefly show more than the full minute.
+    setNow(serverNow())
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    const id = setInterval(() => setNow(serverNow()), 200)
+    return () => clearInterval(id)
+  }, [endsAt])
+
+  const totalMs = seconds * 1000
+  const leftMs = endsAt ? Math.min(totalMs, Math.max(0, endsAt - now)) : totalMs
+  const finished = !!endsAt && leftMs === 0
+  const shown = Math.ceil(leftMs / 1000)
+  const label = `${Math.floor(shown / 60)}:${String(shown % 60).padStart(2, '0')}`
+
+  useEffect(() => {
+    if (finished) vibrate([200, 100, 200])
+  }, [finished])
+
+  // Ring drains as time runs out, and turns red for the last 10 seconds.
+  const r = 44
+  const circumference = 2 * Math.PI * r
+  const hot = finished || (!!endsAt && leftMs <= 10_000)
+
+  return (
+    <div ref={ref} className="flex scroll-mb-28 items-center gap-4 rounded-2xl border border-char bg-char/60 p-3 pr-4">
+      <div className="relative h-20 w-20 shrink-0">
+        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+          <circle cx="50" cy="50" r={r} fill="none" stroke="var(--color-ash)" strokeWidth="7" />
+          <circle
+            cx="50"
+            cy="50"
+            r={r}
+            fill="none"
+            stroke={hot ? 'var(--color-flame)' : 'var(--color-ember)'}
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference * (1 - leftMs / totalMs)}
+            style={{ transition: 'stroke-dashoffset 0.2s linear' }}
+          />
+        </svg>
+        <span
+          className={`absolute inset-0 flex items-center justify-center font-display text-xl font-extrabold tabular-nums ${
+            finished ? 'text-flame' : 'text-cream'
+          }`}
+        >
+          {label}
+        </span>
+      </div>
+      <p className={finished ? 'font-display text-xl font-bold text-flame' : 'text-sm text-cream/80'}>
+        {finished
+          ? "Time's up!"
+          : endsAt
+            ? 'Ask away. Every question has to be answered.'
+            : isDrawer
+              ? "Tap Start the timer when everyone's ready."
+              : `Waiting for ${drawerName} to start the clock…`}
+      </p>
+    </div>
+  )
 }
 
 function Callout({ children, tone }: { children: ReactNode; tone?: 'fire' | 'gold' }) {

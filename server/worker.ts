@@ -133,7 +133,8 @@ export class RoomDO extends DurableObject<Env> {
 
   private broadcast() {
     if (!this.room) return
-    for (const { ws, playerId } of this.sockets()) send(ws, { type: 'state', state: this.room.state, you: playerId })
+    const now = Date.now()
+    for (const { ws, playerId } of this.sockets()) send(ws, { type: 'state', state: this.room.state, you: playerId, now })
   }
 
   /** Points this socket at a player, dropping any other socket that was using the same seat. */
@@ -255,6 +256,9 @@ export class RoomDO extends DurableObject<Env> {
         break
       case 'done':
         room.done(playerId)
+        break
+      case 'startTimer':
+        room.startTimer(playerId)
         break
       case 'skip':
         room.skip(playerId)
