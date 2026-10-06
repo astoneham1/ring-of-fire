@@ -251,3 +251,38 @@ function listNames(names: string[]) {
   return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]
 }
 
+/** Big, centred box for the person who was just picked to drink on "2 — You". */
+export function YouDrink({ pickerName, duration, onDone }: { pickerName: string; duration: number; onDone: () => void }) {
+  useEffect(() => {
+    vibrate([120, 60, 120])
+  }, [])
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[45] flex items-center justify-center bg-ink/75 px-6 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onDone}
+    >
+      <motion.div
+        className="relative w-full max-w-sm overflow-hidden rounded-[32px] border border-ember/50 bg-gradient-to-b from-[#3a1a12] to-coal px-6 pt-10 pb-8 text-center shadow-[0_30px_80px_-20px_rgb(232_69_44/0.55)]"
+        initial={{ scale: 0.6, rotate: -4 }}
+        animate={{ scale: 1, rotate: 0 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 16 }}
+      >
+        <p className="label text-gold">Decorum!</p>
+        <h2 className="mt-2 font-display text-6xl leading-none font-extrabold tracking-tight text-ember">Drink!</h2>
+        <p className="mt-5 font-display text-2xl leading-snug font-bold">{pickerName} picked you to drink</p>
+        <p className="mt-6 text-sm text-cream/50">Tap to close</p>
+        <motion.div
+          className="absolute inset-x-0 bottom-0 h-1 origin-left bg-ember"
+          initial={{ scaleX: 1 }}
+          animate={{ scaleX: 0 }}
+          transition={{ duration: duration / 1000, ease: 'linear' }}
+        />
+      </motion.div>
+    </motion.div>
+  )
+}

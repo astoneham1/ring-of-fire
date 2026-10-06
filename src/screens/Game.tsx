@@ -4,12 +4,14 @@ import { getRule } from '../../shared/rules.ts'
 import { RANKS, type GameState } from '../../shared/types.ts'
 import { DrawSheet } from '../components/DrawSheet.tsx'
 import { HostSkip } from '../components/HostSkip.tsx'
-import { ConfirmSheet, FinalCup, PickAnnouncement, StarterReveal } from '../components/Overlays.tsx'
+import { ConfirmSheet, FinalCup, PickAnnouncement, StarterReveal, YouDrink } from '../components/Overlays.tsx'
 import { RankBadge } from '../components/PlayingCard.tsx'
 import { Table } from '../components/Table.tsx'
 import { TableInfo } from '../components/TableInfo.tsx'
 import { nameOf, vibrate } from '../lib/players.ts'
 import type { Send } from '../lib/useGame.ts'
+
+const YOU_DRINK_MS = 4500
 
 export function Game({ state, you, send }: { state: GameState; you: string; send: Send }) {
   const isHost = state.hostId === you
@@ -34,21 +36,31 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
 
   const canDraw = !draw && yourTurn
 
+
   // Announce picks (You, Mate), since those cards finish the moment a name is confirmed.
   const latest = state.history[0]
   const latestKey = latest ? `${state.gameId}-${latest.slot}` : null
   const seenKey = useRef(latestKey)
   const [announce, setAnnounce] = useState<typeof latest | null>(null)
+  // If someone picked *you* on "2 — You", you get a big box instead, since nothing else tells you.
+  const [pickedYou, setPickedYou] = useState<typeof latest | null>(null)
   useEffect(() => {
     if (latestKey === seenKey.current) return
     seenKey.current = latestKey
-    if (latest?.targetId) setAnnounce(latest)
-  }, [latestKey, latest])
+    if (!latest?.targetId) return
+    if (latest.targetId === you && getRule(latest.ruleId).action.kind === 'chooseDrinker') setPickedYou(latest)
+    else setAnnounce(latest)
+  }, [latestKey, latest, you])
   useEffect(() => {
     if (!announce) return
     const t = setTimeout(() => setAnnounce(null), 4000)
     return () => clearTimeout(t)
   }, [announce])
+  useEffect(() => {
+    if (!pickedYou) return
+    const t = setTimeout(() => setPickedYou(null), YOU_DRINK_MS)
+    return () => clearTimeout(t)
+  }, [pickedYou])
 
   return (
     <main className="safe-top safe-bottom mx-auto flex min-h-dvh max-w-md flex-col px-4">
@@ -130,6 +142,17 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
       </AnimatePresence>
 
       <AnimatePresence>{announce && <PickAnnouncement key={announce.slot} state={state} entry={announce} you={you} />}</AnimatePresence>
+
+      <AnimatePresence>
+        {pickedYou && (
+          <YouDrink
+            key={pickedYou.slot}
+            pickerName={nameOf(state, pickedYou.playerId)}
+            duration={YOU_DRINK_MS}
+            onDone={() => setPickedYou(null)}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {introFor === state.gameId && <StarterReveal state={state} you={you} onDone={() => setIntroFor(null)} />}
