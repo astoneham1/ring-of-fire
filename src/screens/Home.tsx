@@ -93,7 +93,8 @@ export function Home({ send, notify }: { send: Send; notify: (msg: string) => vo
             <button type="button" className="btn-primary w-full" onClick={host}>
               Host a game
             </button>
-            <div className="flex items-center gap-3 text-xs font-semibold tracking-[0.14em] text-smoke uppercase">
+            {/* Extra room on top so the button's raised edge doesn't crowd the divider. */}
+            <div className="flex items-center gap-3 pt-3 text-xs font-semibold tracking-[0.14em] text-smoke uppercase short:pt-2">
               <span className="h-px flex-1 bg-char" />
               or join one
               <span className="h-px flex-1 bg-char" />
