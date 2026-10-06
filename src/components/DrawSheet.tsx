@@ -128,8 +128,7 @@ function Outcome({ state, draw, you, canAct, send }: Props & { canAct: boolean }
         </Callout>
       ) : (
         <Callout key="cup">
-          Cup card <b>{draw.cupNumber}</b> of {state.cup.total}. {state.cup.total - (draw.cupNumber ?? 0)} to go until someone
-          downs it.
+          {kingsCupProgress(draw, state.cup.total)}
         </Callout>
       ),
     )
@@ -307,6 +306,16 @@ function Countdown({
       </p>
     </div>
   )
+}
+
+const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth']
+
+/** e.g. "The second King has been drawn. Only 2 more remain." */
+function kingsCupProgress(draw: Draw, total: number) {
+  const n = draw.cupNumber ?? 1
+  const left = total - n
+  const card = RANK_NAMES[draw.card.rank]
+  return `The ${ORDINALS[n - 1] ?? `${n}th`} ${card} has been drawn. Only ${left} more ${left === 1 ? 'remains' : 'remain'}.`
 }
 
 function Callout({ children, tone }: { children: ReactNode; tone?: 'fire' | 'gold' }) {
