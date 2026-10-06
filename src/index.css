@@ -50,13 +50,15 @@
 }
 
 @utility btn {
-  @apply inline-flex h-14 items-center justify-center gap-2 rounded-2xl px-6 font-display text-lg font-bold tracking-tight transition active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100;
+  @apply inline-flex h-14 items-center justify-center gap-2 rounded-2xl px-6 font-display text-lg font-bold tracking-tight transition active:scale-[0.97] disabled:active:scale-100;
 }
 @utility btn-primary {
   @apply btn bg-ember text-ink shadow-[0_6px_0_0_#b8461a] active:translate-y-[3px] active:shadow-[0_3px_0_0_#b8461a];
+  /* Disabled buttons stay solid so nothing behind them shows through. */
+  @apply disabled:translate-y-0 disabled:bg-ash disabled:text-smoke disabled:shadow-none;
 }
 @utility btn-secondary {
-  @apply btn border border-ash bg-char text-cream;
+  @apply btn border border-ash bg-char text-cream disabled:text-smoke/60;
 }
 @utility btn-ghost {
   @apply btn h-11 px-4 text-base font-semibold text-smoke;
