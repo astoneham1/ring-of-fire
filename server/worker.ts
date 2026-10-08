@@ -16,6 +16,8 @@ function roomStub(env: Env, code: string) {
 export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url)
+    if (url.pathname === '/') return withLinkPreview(await env.ASSETS.fetch(request), url)
+
     const match = url.pathname.match(/^\/ws\/([A-Za-z]{4})$/)
     if (match) {
       if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected a WebSocket', { status: 426 })
@@ -25,6 +27,28 @@ export default {
     return new Response('Not found', { status: 404 })
   },
 } satisfies ExportedHandler<Env>
+
+/**
+ * Fills in the link-preview tags chat apps read. They need absolute URLs, and an invite link
+ * (`/?join=ABCD`) gets a preview that names the game code.
+ */
+function withLinkPreview(page: Response, url: URL): Response {
+  const code = (url.searchParams.get('join') ?? '').toUpperCase().replace(/[^A-Z]/g, '')
+  const invite = code.length === 4
+  const tags: Record<string, string> = {
+    'og:title': invite ? 'Join my Ring of Fire game' : 'Ring of Fire',
+    'og:description': invite
+      ? `Game code ${code}. Tap to join, no cards needed.`
+      : 'The drinking game, for when nobody brought the cards.',
+    'og:image': `${url.origin}/og-image.png`,
+    'og:url': url.href,
+  }
+  let rewriter = new HTMLRewriter()
+  for (const [property, content] of Object.entries(tags)) {
+    rewriter = rewriter.on(`meta[property="${property}"]`, { element: (el) => void el.setAttribute('content', content) })
+  }
+  return rewriter.transform(page)
+}
 
 /** Stored on each socket so it survives the object hibernating. */
 interface SocketInfo {
