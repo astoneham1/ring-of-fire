@@ -5,7 +5,7 @@ import { RANKS, type GameState } from '../../shared/types.ts'
 import { DrawSheet } from '../components/DrawSheet.tsx'
 import { HostSkip } from '../components/HostSkip.tsx'
 import { SeatPanel, useSeatSelection } from '../components/SeatPanel.tsx'
-import { ConfirmSheet, FinalCup, PickAnnouncement, StarterReveal, YouDrink } from '../components/Overlays.tsx'
+import { ConfirmSheet, FinalCup, LastCardFlash, PickAnnouncement, StarterReveal, YouDrink } from '../components/Overlays.tsx'
 import { RankBadge } from '../components/PlayingCard.tsx'
 import { Table } from '../components/Table.tsx'
 import { TableInfo } from '../components/TableInfo.tsx'
@@ -57,6 +57,21 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
     const t = setTimeout(() => setSlow(true), SLOW_TURN_MS)
     return () => clearTimeout(t)
   }, [state.turnId, draw])
+  // One card left and it's waiting to be drawn.
+  const lastCard = state.cardsLeft === 1 && !draw
+  // Flash "Last card" when we get down to it, but not for someone reconnecting at that point.
+  const [lastCardFlash, setLastCardFlash] = useState(false)
+  const cardsLeftBefore = useRef(state.cardsLeft)
+  useEffect(() => {
+    if (lastCard && cardsLeftBefore.current > 1) setLastCardFlash(true)
+    if (!draw) cardsLeftBefore.current = state.cardsLeft
+  }, [lastCard, draw, state.cardsLeft])
+  useEffect(() => {
+    if (!lastCardFlash) return
+    const t = setTimeout(() => setLastCardFlash(false), 2200)
+    return () => clearTimeout(t)
+  }, [lastCardFlash])
+
   const nudge = slow && (
     <motion.p className="font-semibold text-gold italic" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       A good game's a quick game
@@ -98,9 +113,13 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
         >
           {isHost ? 'End game' : 'Leave'}
         </button>
-        <span className="text-sm font-semibold text-smoke">
-          <span className="text-cream">{state.cardsLeft}</span> cards left
-        </span>
+        {lastCard ? (
+          <span className="text-sm font-bold text-gold">Last card</span>
+        ) : (
+          <span className="text-sm font-semibold text-smoke">
+            <span className="text-cream">{state.cardsLeft}</span> {state.cardsLeft === 1 ? 'card' : 'cards'} left
+          </span>
+        )}
         <button
           type="button"
           className="justify-self-end rounded-full border border-char px-3 py-1 text-sm font-semibold text-smoke"
@@ -122,12 +141,22 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
             {yourTurn ? (
               <>
                 <h1 className="font-display text-4xl font-extrabold tracking-tight text-ember">Your turn</h1>
-                {nudge || <p className="text-smoke">Tap a card from the ring</p>}
+                {nudge ||
+                  (lastCard ? (
+                    <p className="font-semibold text-gold">The last card. Make it count.</p>
+                  ) : (
+                    <p className="text-smoke">Tap a card from the ring</p>
+                  ))}
               </>
             ) : (
               <>
                 <h1 className="font-display text-3xl font-extrabold tracking-tight">{nameOf(state, state.turnId)}'s turn</h1>
-                {nudge || <p className="text-smoke">{nextId === you ? "You're up next" : '\u00a0'}</p>}
+                {nudge ||
+                  (lastCard ? (
+                    <p className="font-semibold text-gold">The last card in the ring</p>
+                  ) : (
+                    <p className="text-smoke">{nextId === you ? "You're up next" : '\u00a0'}</p>
+                  ))}
               </>
             )}
           </motion.div>
@@ -181,6 +210,8 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
           />
         )}
       </AnimatePresence>
+
+      <AnimatePresence>{lastCardFlash && <LastCardFlash />}</AnimatePresence>
 
       <AnimatePresence>
         {introFor === state.gameId && <StarterReveal state={state} you={you} onDone={() => setIntroFor(null)} />}

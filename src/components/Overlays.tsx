@@ -6,6 +6,34 @@ import { nameOf, vibrate } from '../lib/players.ts'
 import { Avatar } from './Avatar.tsx'
 import { Cup } from './Cup.tsx'
 
+/** A brief, non-blocking "Last card" moment when the ring is down to one. */
+export function LastCardFlash() {
+  useEffect(() => {
+    vibrate([80, 60, 80])
+  }, [])
+  return (
+    <motion.div
+      className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.4 } }}
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(closest-side,rgb(255_122_47/0.35),transparent)]" />
+      <motion.div
+        className="relative rounded-[28px] border border-ember/50 bg-coal px-9 py-6 text-center shadow-[0_24px_60px_-12px_rgb(232_69_44/0.55)]"
+        initial={{ scale: 1.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 14 }}
+      >
+        <p className="label text-gold">One left</p>
+        <p className="mt-1 font-display text-6xl leading-none font-extrabold tracking-tight text-cream">
+          Last <span className="text-ember">card</span>
+        </p>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 /** Spins through the players and lands on whoever starts. */
 export function StarterReveal({ state, you, onDone }: { state: GameState; you: string; onDone: () => void }) {
   const players = state.players
