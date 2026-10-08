@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { DEFAULT_RULES, RULE_LIBRARY, getRule, ruleName } from '../../shared/rules.ts'
 import { RANKS, type GameState, type Gender } from '../../shared/types.ts'
+import { CloseGameSheet } from '../components/Overlays.tsx'
 import { RankBadge } from '../components/PlayingCard.tsx'
 import { SeatPanel, useSeatSelection } from '../components/SeatPanel.tsx'
 import { Table } from '../components/Table.tsx'
@@ -16,6 +17,7 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
   const seats = useSeatSelection(send, state.players)
   const me = state.players.find((p) => p.id === you)
   const [editingProfile, setEditingProfile] = useState(false)
+  const [confirmClose, setConfirmClose] = useState(false)
   const selectedPlayer = state.players.find((p) => p.id === seats.selected)
   const [showQr, setShowQr] = useState(false)
   const rulesRef = useRef<HTMLHeadingElement>(null)
@@ -176,6 +178,8 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
         )}
       </section>
 
+      <AnimatePresence>{confirmClose && <CloseGameSheet send={send} onCancel={() => setConfirmClose(false)} />}</AnimatePresence>
+
       <AnimatePresence>
         {editingProfile && me && (
           <ProfileSheet
@@ -234,8 +238,8 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
             </div>
           )}
           <div className="flex justify-center">
-            <button type="button" className="btn-ghost" onClick={() => send({ type: 'leave' })}>
-              Leave game
+            <button type="button" className="btn-ghost" onClick={() => (isHost ? setConfirmClose(true) : send({ type: 'leave' }))}>
+              {isHost ? 'Close game' : 'Leave game'}
             </button>
             {rulesHidden && (
               <button

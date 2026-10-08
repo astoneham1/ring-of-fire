@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { getRule } from '../../shared/rules.ts'
-import { serverNow } from '../lib/useGame.ts'
+import { serverNow, type Send } from '../lib/useGame.ts'
 import type { Draw, GameState, HistoryEntry, Player } from '../../shared/types.ts'
 import { nameOf, vibrate } from '../lib/players.ts'
 import { Avatar } from './Avatar.tsx'
@@ -349,5 +349,19 @@ export function UndoDone({ until, drawerName, onUndo }: { until: number; drawerN
         />
       </div>
     </motion.div>
+  )
+}
+
+/** The host leaving outside a game closes it for everyone, so check first. */
+export function CloseGameSheet({ send, onCancel }: { send: Send; onCancel: () => void }) {
+  return (
+    <ConfirmSheet
+      title="Close the game?"
+      body="You're the host, so leaving closes the game and sends everyone back to the start."
+      confirmLabel="Close game"
+      cancelLabel="Stay"
+      onConfirm={() => send({ type: 'leave' })}
+      onCancel={onCancel}
+    />
   )
 }

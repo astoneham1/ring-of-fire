@@ -233,8 +233,18 @@ export class RoomDO extends DurableObject<Env> {
     if (!room || !playerId) throw new GameError('Not in a game')
 
     switch (msg.type) {
-      case 'leave':
+      case 'leave': {
         setPlayer(ws, undefined)
+        // The host leaving before the game starts (or after it's over) closes the game for everyone.
+        // Mid-game, someone else takes over as host instead.
+        if (playerId === room.hostId && room.state.phase !== 'playing') {
+          const hostName = room.player(playerId)?.name ?? 'The host'
+          send(ws, { type: 'left' })
+          for (const other of this.sockets()) this.drop(other.ws, `${hostName} left, so the game has closed`)
+          await this.ctx.storage.deleteAll()
+          this.room = null
+          return
+        }
         room.remove(playerId)
         send(ws, { type: 'left' })
         if (room.state.players.length === 0) {
@@ -243,6 +253,7 @@ export class RoomDO extends DurableObject<Env> {
           return
         }
         break
+      }
       case 'kick':
         room.kick(playerId, msg.playerId)
         for (const other of this.sockets()) {

@@ -1,6 +1,8 @@
-import { motion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useState } from 'react'
 import type { GameState } from '../../shared/types.ts'
 import { Cup } from '../components/Cup.tsx'
+import { CloseGameSheet } from '../components/Overlays.tsx'
 import { TableInfo } from '../components/TableInfo.tsx'
 import { nameOf } from '../lib/players.ts'
 import type { Send } from '../lib/useGame.ts'
@@ -14,6 +16,7 @@ const ENDINGS = {
 export function Finished({ state, you, send }: { state: GameState; you: string; send: Send }) {
   const isHost = state.hostId === you
   const ending = ENDINGS[state.endReason ?? 'deck']
+  const [confirmClose, setConfirmClose] = useState(false)
 
   return (
     <main className="safe-top safe-bottom mx-auto flex min-h-dvh max-w-md flex-col px-4">
@@ -47,10 +50,11 @@ export function Finished({ state, you, send }: { state: GameState; you: string; 
             {nameOf(state, state.hostId)} can start another round
           </div>
         )}
-        <button type="button" className="btn-ghost w-full" onClick={() => send({ type: 'leave' })}>
-          Leave game
+        <button type="button" className="btn-ghost w-full" onClick={() => (isHost ? setConfirmClose(true) : send({ type: 'leave' }))}>
+          {isHost ? 'Close game' : 'Leave game'}
         </button>
       </div>
+      <AnimatePresence>{confirmClose && <CloseGameSheet send={send} onCancel={() => setConfirmClose(false)} />}</AnimatePresence>
     </main>
   )
 }
