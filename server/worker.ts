@@ -81,6 +81,8 @@ export class RoomDO extends DurableObject<Env> {
   }
 
   async fetch(request: Request): Promise<Response> {
+    // Read storage now, while the socket is opening, so the first message doesn't wait on it.
+    await this.load()
     const code = new URL(request.url).pathname.slice('/ws/'.length).toUpperCase()
     const [client, server] = Object.values(new WebSocketPair())
     this.ctx.acceptWebSocket(server)
