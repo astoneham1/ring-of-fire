@@ -4,33 +4,18 @@ import { GameError, Room, type RoomSnapshot } from './game.ts'
 
 /** Rooms nobody is connected to are deleted after this long. */
 const ROOM_IDLE_MS = 6 * 60 * 60 * 1000
-// No I/O/0/1 so codes are easy to read out loud.
-const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
-
-function randomCode(): string {
-  return Array.from({ length: 4 }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join('')
-}
 
 function roomStub(env: Env, code: string) {
   return env.ROOMS.get(env.ROOMS.idFromName(code))
 }
 
 /**
- * Routes `POST /api/rooms` (reserve a new code) and `/ws/:code` (a player's socket) to the
- * room's Durable Object. Everything else is served straight from the built React app.
+ * Routes `/ws/:code` (a player's socket) to that room's Durable Object. Hosting a game is just
+ * connecting to a fresh code and sending `create`. Everything else is the built React app.
  */
 export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url)
-
-    if (url.pathname === '/api/rooms' && request.method === 'POST') {
-      for (let attempt = 0; attempt < 20; attempt++) {
-        const code = randomCode()
-        if (await roomStub(env, code).claim(code)) return Response.json({ code })
-      }
-      return new Response('No free game codes, try again', { status: 503 })
-    }
-
     const match = url.pathname.match(/^\/ws\/([A-Za-z]{4})$/)
     if (match) {
       if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected a WebSocket', { status: 426 })
@@ -43,7 +28,18 @@ export default {
 
 /** Stored on each socket so it survives the object hibernating. */
 interface SocketInfo {
-  playerId: string
+  /** The room's code, from the address the socket connected to. */
+  code: string
+  /** Set once the socket is someone's seat. */
+  playerId?: string
+}
+
+function socketInfo(ws: WebSocket): SocketInfo {
+  return (ws.deserializeAttachment() as SocketInfo | null) ?? { code: '' }
+}
+
+function setPlayer(ws: WebSocket, playerId: string | undefined) {
+  ws.serializeAttachment({ code: socketInfo(ws).code, playerId } satisfies SocketInfo)
 }
 
 /**
@@ -60,17 +56,11 @@ export class RoomDO extends DurableObject<Env> {
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'))
   }
 
-  /** Reserves this room's code for a new game. False if it's already in use. */
-  async claim(code: string): Promise<boolean> {
-    if (await this.ctx.storage.get('code')) return false
-    await this.ctx.storage.put('code', code)
-    await this.ctx.storage.setAlarm(Date.now() + ROOM_IDLE_MS)
-    return true
-  }
-
-  async fetch(): Promise<Response> {
+  async fetch(request: Request): Promise<Response> {
+    const code = new URL(request.url).pathname.slice('/ws/'.length).toUpperCase()
     const [client, server] = Object.values(new WebSocketPair())
     this.ctx.acceptWebSocket(server)
+    server.serializeAttachment({ code } satisfies SocketInfo)
     return new Response(null, { status: 101, webSocket: client })
   }
 
@@ -126,8 +116,8 @@ export class RoomDO extends DurableObject<Env> {
 
   private sockets(): { ws: WebSocket; playerId: string }[] {
     return this.ctx.getWebSockets().flatMap((ws) => {
-      const info = ws.deserializeAttachment() as SocketInfo | null
-      return info ? [{ ws, playerId: info.playerId }] : []
+      const { playerId } = socketInfo(ws)
+      return playerId ? [{ ws, playerId }] : []
     })
   }
 
@@ -144,14 +134,14 @@ export class RoomDO extends DurableObject<Env> {
         this.drop(other.ws, 'You opened this game somewhere else')
       }
     }
-    ws.serializeAttachment({ playerId } satisfies SocketInfo)
+    setPlayer(ws, playerId)
     room.setConnected(playerId, true)
     this.save()
     this.broadcast()
   }
 
   private drop(ws: WebSocket, message: string) {
-    ws.serializeAttachment(null)
+    setPlayer(ws, undefined)
     send(ws, { type: 'error', message, fatal: true })
     try {
       ws.close(1000, 'Removed')
@@ -161,12 +151,12 @@ export class RoomDO extends DurableObject<Env> {
   }
 
   private async detach(ws: WebSocket) {
-    const info = ws.deserializeAttachment() as SocketInfo | null
-    ws.serializeAttachment(null)
+    const { playerId } = socketInfo(ws)
+    setPlayer(ws, undefined)
     const room = await this.load()
-    if (!info || !room) return
-    if (this.sockets().some((s) => s.ws !== ws && s.playerId === info.playerId)) return
-    room.setConnected(info.playerId, false)
+    if (!playerId || !room) return
+    if (this.sockets().some((s) => s.ws !== ws && s.playerId === playerId)) return
+    room.setConnected(playerId, false)
     this.save()
     this.broadcast()
   }
@@ -177,15 +167,13 @@ export class RoomDO extends DurableObject<Env> {
     switch (msg.type) {
       case 'create': {
         if (room) {
-          // A retried create from the same phone just rejoins.
+          // A retried create from the same phone just rejoins; anyone else needs a different code.
           const player = room.playerForToken(msg.token)
-          if (!player) throw new GameError('That game code is already taken')
-          this.attach(ws, room, player.id)
+          if (player) this.attach(ws, room, player.id)
+          else send(ws, { type: 'codeTaken' })
           return
         }
-        const code = await this.ctx.storage.get<string>('code')
-        if (!code) throw new GameError("Couldn't create the game. Try again")
-        this.room = new Room(code, msg.token, msg.name, msg.gender, msg.rules)
+        this.room = new Room(socketInfo(ws).code, msg.token, msg.name, msg.gender, msg.rules)
         this.attach(ws, this.room, this.room.hostId)
         return
       }
@@ -209,13 +197,12 @@ export class RoomDO extends DurableObject<Env> {
       }
     }
 
-    const info = ws.deserializeAttachment() as SocketInfo | null
-    if (!room || !info) throw new GameError('Not in a game')
-    const { playerId } = info
+    const { playerId } = socketInfo(ws)
+    if (!room || !playerId) throw new GameError('Not in a game')
 
     switch (msg.type) {
       case 'leave':
-        ws.serializeAttachment(null)
+        setPlayer(ws, undefined)
         room.remove(playerId)
         send(ws, { type: 'left' })
         if (room.state.players.length === 0) {

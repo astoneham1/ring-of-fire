@@ -4,9 +4,9 @@
   "main": "server/worker.ts",
   "compatibility_date": "2026-10-01",
   "assets": {
-    // Everything except the game socket and API is the React app.
+    // Everything except the game sockets is the React app.
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/ws/*", "/api/*"]
+    "run_worker_first": ["/ws/*"]
   },
   "durable_objects": {
     "bindings": [{ "name": "ROOMS", "class_name": "RoomDO" }]

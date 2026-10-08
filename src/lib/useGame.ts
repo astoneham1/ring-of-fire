@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ClientMessage, GameState, ServerMessage } from '../../shared/types.ts'
+import { randomCode, type ClientMessage, type GameState, type ServerMessage } from '../../shared/types.ts'
 import { deviceToken, loadRoomCode, saveRoomCode } from './storage.ts'
 
 const WS_BASE = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`
@@ -36,6 +36,9 @@ export function useGame() {
   /** The room we want to be connected to. Null once we've left. */
   const codeRef = useRef<string | null>(null)
   const queue = useRef<ClientMessage[]>([])
+  /** What to send when (re)connecting: create/join until we're in, then resume. */
+  const firstMsg = useRef<ClientMessage | null>(null)
+  const codeTries = useRef(0)
   const retry = useRef(0)
   const retryTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
@@ -45,6 +48,7 @@ export function useGame() {
     codeRef.current = null
     clearTimeout(retryTimer.current)
     queue.current = []
+    firstMsg.current = null
     const ws = wsRef.current
     wsRef.current = null
     ws?.close()
@@ -57,6 +61,7 @@ export function useGame() {
       clearTimeout(retryTimer.current)
       wsRef.current?.close()
       codeRef.current = code
+      firstMsg.current = first
       queue.current = [first]
       setStatus('connecting')
 
@@ -73,12 +78,18 @@ export function useGame() {
         if (event.data === 'pong') return
         const msg = JSON.parse(event.data) as ServerMessage
         if (msg.type === 'state') {
+          // We're in: from now on, reconnecting means getting back into this seat.
+          firstMsg.current = { type: 'resume', token: deviceToken(), code: msg.state.code }
           clockOffset = msg.now - Date.now()
           setState(msg.state)
           setYou(msg.you)
           saveRoomCode(msg.state.code)
           setResuming(false)
         } else if (msg.type === 'error') {
+          if (!msg.fatal && firstMsg.current?.type !== 'resume') {
+            // Hosting or joining didn't work (e.g. name taken): back to the home screen's form.
+            disconnect()
+          }
           if (msg.fatal) {
             disconnect()
             saveRoomCode(null)
@@ -86,6 +97,14 @@ export function useGame() {
             setResuming(false)
           }
           notify(msg.message)
+        } else if (msg.type === 'codeTaken') {
+          // Someone already has this code. Very rare, so just try another.
+          const create = firstMsg.current
+          if (create?.type === 'create' && codeTries.current++ < 10) connect(randomCode(), create)
+          else {
+            disconnect()
+            notify("Couldn't set up a game. Try again")
+          }
         } else if (msg.type === 'left') {
           disconnect()
           saveRoomCode(null)
@@ -100,7 +119,8 @@ export function useGame() {
         // Dropped unexpectedly (screen locked, bad signal): come back to the same seat.
         setStatus('closed')
         const delay = Math.min(5000, 500 * 2 ** retry.current++)
-        retryTimer.current = setTimeout(() => connect(code, { type: 'resume', token: deviceToken(), code }), delay)
+        const again = firstMsg.current ?? { type: 'resume', token: deviceToken(), code }
+        retryTimer.current = setTimeout(() => connect(code, again), delay)
       }
     },
     [disconnect, notify],
@@ -136,11 +156,9 @@ export function useGame() {
   const send = useCallback(
     (msg: ClientMessage) => {
       if (msg.type === 'create') {
-        // Reserve a fresh code first, then open the new room.
-        fetch('/api/rooms', { method: 'POST' })
-          .then((res) => (res.ok ? (res.json() as Promise<{ code: string }>) : Promise.reject()))
-          .then(({ code }) => connect(code, msg))
-          .catch(() => notify("Couldn't reach the server. Try again"))
+        // Straight to a fresh code; the room replies codeTaken in the rare case it's in use.
+        codeTries.current = 0
+        connect(randomCode(), msg)
         return
       }
       if (msg.type === 'join') {

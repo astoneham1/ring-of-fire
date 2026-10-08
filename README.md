@@ -20,7 +20,7 @@ server/   game.ts   — all game rules, no networking
 src/      React client (Vite + Tailwind v4 + Motion)
 ```
 
-- Everything is one Cloudflare Worker. It serves the built React app, `POST /api/rooms` reserves a new game code, and `/ws/:code` is a room's WebSocket.
+- Everything is one Cloudflare Worker. It serves the built React app, and `/ws/:code` is a room's WebSocket. Hosting picks a random code on the phone and sends `create`; if that code is already a game, the room replies `codeTaken` and the phone tries another.
 - Each room is a Durable Object: the source of truth for that game. Phones send intents (`draw`, `choose`, `done`…) and get the full public game state back.
 - Rooms are saved to Durable Object storage after every change, so a game survives the room going to sleep or Cloudflare restarting it. Rooms nobody is connected to are deleted after 6 hours.
 - The deck order lives only on the server, so nobody can peek.

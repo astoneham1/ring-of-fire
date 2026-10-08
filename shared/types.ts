@@ -66,6 +66,14 @@ export type RuleConfig = Record<Rank, string>
 
 export const DECK_SIZE = 52
 
+// No I/O/0/1 so codes are easy to read out loud.
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+
+/** A random 4-letter game code. If it's already in use the room says so and the phone picks another. */
+export function randomCode(): string {
+  return Array.from({ length: 4 }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join('')
+}
+
 /** Everything every phone in the room is allowed to see. */
 export interface GameState {
   code: string
@@ -118,3 +126,5 @@ export type ServerMessage =
   | { type: 'state'; state: GameState; you: string; now: number }
   | { type: 'error'; message: string; fatal?: boolean }
   | { type: 'left' }
+  /** Reply to `create` when the code is already a game: pick another and try again. */
+  | { type: 'codeTaken' }
