@@ -41,6 +41,8 @@ export function useGame() {
   /** What to send when (re)connecting: create/join until we're in, then resume. */
   const firstMsg = useRef<ClientMessage | null>(null)
   const codeTries = useRef(0)
+  /** A connection opened ahead of time to a fresh code, so hosting doesn't wait for it. */
+  const warm = useRef<{ code: string; ws: WebSocket } | null>(null)
   const retry = useRef(0)
   const retryTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
@@ -60,7 +62,8 @@ export function useGame() {
 
   /** Opens a socket to a room. `first` is sent as soon as it's open (create, join or resume). */
   const connect = useCallback(
-    (code: string, first: ClientMessage) => {
+    /** `existing`: an already-open socket to this code (the pre-warmed one) to use instead of a new one. */
+    (code: string, first: ClientMessage, existing?: WebSocket) => {
       clearTimeout(retryTimer.current)
       wsRef.current?.close()
       codeRef.current = code
@@ -68,14 +71,16 @@ export function useGame() {
       queue.current = [first]
       setStatus('connecting')
 
-      const ws = new WebSocket(`${WS_BASE}/ws/${code}`)
+      const ws = existing ?? new WebSocket(`${WS_BASE}/ws/${code}`)
       wsRef.current = ws
 
-      ws.onopen = () => {
+      const opened = () => {
         retry.current = 0
         setStatus('open')
         for (const msg of queue.current.splice(0)) ws.send(JSON.stringify(msg))
       }
+      if (ws.readyState === WebSocket.OPEN) opened()
+      else ws.onopen = opened
 
       ws.onmessage = (event) => {
         if (event.data === 'pong') return
@@ -146,13 +151,14 @@ export function useGame() {
     window.addEventListener('online', onVisible)
 
     const keepalive = setInterval(() => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) wsRef.current.send('ping')
+      for (const ws of [wsRef.current, warm.current?.ws]) if (ws?.readyState === WebSocket.OPEN) ws.send('ping')
     }, KEEPALIVE_MS)
 
     return () => {
       document.removeEventListener('visibilitychange', onVisible)
       window.removeEventListener('online', onVisible)
       clearInterval(keepalive)
+      warm.current?.ws.close()
       disconnect()
     }
   }, [connect, disconnect])
@@ -161,12 +167,18 @@ export function useGame() {
     (msg: ClientMessage) => {
       if (msg.type === 'create') {
         // Straight to a fresh code; the room replies codeTaken in the rare case it's in use.
+        // Use the pre-warmed connection if it's ready, which skips the slowest part.
         codeTries.current = 0
         setPending('host')
-        connect(randomCode(), msg)
+        const ready = warm.current?.ws.readyState === WebSocket.OPEN ? warm.current : null
+        warm.current = null
+        if (ready) connect(ready.code, msg, ready.ws)
+        else connect(randomCode(), msg)
         return
       }
       if (msg.type === 'join') {
+        warm.current?.ws.close()
+        warm.current = null
         setPending('join')
         connect(msg.code.toUpperCase().trim(), msg)
         return
@@ -178,7 +190,20 @@ export function useGame() {
     [connect, notify],
   )
 
-  return { state, you, status, notice, resuming, pending, send, notify }
+  /** Opens a spare connection to a fresh code while the home screen is up. Safe to call repeatedly. */
+  const prewarm = useCallback(() => {
+    if (codeRef.current) return
+    const current = warm.current?.ws
+    if (current && (current.readyState === WebSocket.OPEN || current.readyState === WebSocket.CONNECTING)) return
+    const code = randomCode()
+    const ws = new WebSocket(`${WS_BASE}/ws/${code}`)
+    ws.onclose = () => {
+      if (warm.current?.ws === ws) warm.current = null
+    }
+    warm.current = { code, ws }
+  }, [])
+
+  return { state, you, status, notice, resuming, pending, send, notify, prewarm }
 }
 
 export type Send = (msg: ClientMessage) => void

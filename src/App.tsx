@@ -8,7 +8,7 @@ import { Home } from './screens/Home.tsx'
 import { Lobby } from './screens/Lobby.tsx'
 
 export function App() {
-  const { state, you, status, notice, resuming, pending, send, notify } = useGame()
+  const { state, you, status, notice, resuming, pending, send, notify, prewarm } = useGame()
 
   // Let everyone know when people come and go, or the host changes.
   const last = useRef(state)
@@ -49,7 +49,7 @@ export function App() {
       </div>
     )
   } else {
-    screen = <Home key="home" send={send} notify={notify} pending={pending} />
+    screen = <Home key="home" send={send} notify={notify} pending={pending} prewarm={prewarm} />
   }
 
   return (

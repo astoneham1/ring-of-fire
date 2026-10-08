@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { Gender } from '../../shared/types.ts'
 import { Table } from '../components/Table.tsx'
 import { deviceToken, loadLastRules, loadProfile, saveProfile } from '../lib/storage.ts'
@@ -13,17 +13,28 @@ export function Home({
   send,
   notify,
   pending,
+  prewarm,
 }: {
   send: Send
   notify: (msg: string) => void
   /** Which button is waiting on the server, if any. */
   pending: 'host' | 'join' | null
+  /** Opens a connection ahead of time so hosting is quick. */
+  prewarm: () => void
 }) {
   const profile = loadProfile()
   const [name, setName] = useState(profile.name)
   const [gender, setGender] = useState<Gender | null>(profile.gender)
   const [code, setCode] = useState(codeFromUrl)
   const joining = code.length > 0
+
+  // Get a connection ready while they type their name (and again if the phone dropped it).
+  useEffect(() => {
+    prewarm()
+    const again = () => document.visibilityState === 'visible' && prewarm()
+    document.addEventListener('visibilitychange', again)
+    return () => document.removeEventListener('visibilitychange', again)
+  }, [prewarm])
 
   const ready = () => {
     if (!name.trim()) {
