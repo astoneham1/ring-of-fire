@@ -47,6 +47,12 @@ function withLinkPreview(page: Response, url: URL): Response {
   for (const [property, content] of Object.entries(tags)) {
     rewriter = rewriter.on(`meta[property="${property}"]`, { element: (el) => void el.setAttribute('content', content) })
   }
+  if (invite) {
+    // Some apps (iMessage) show the page title rather than og:title, so personalise that too.
+    rewriter = rewriter
+      .on('title', { element: (el) => void el.setInnerContent(`Join my Ring of Fire game · ${code}`) })
+      .on('meta[name="description"]', { element: (el) => void el.setAttribute('content', tags['og:description']) })
+  }
   return rewriter.transform(page)
 }
 
