@@ -136,7 +136,9 @@ export function Home({
             maxLength={4}
             autoCapitalize="characters"
             autoComplete="off"
+            autoCorrect="off"
             spellCheck={false}
+            enterKeyHint="go"
             placeholder="Game code"
             onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))}
           />
