@@ -167,10 +167,11 @@ export function useGame() {
     (msg: ClientMessage) => {
       if (msg.type === 'create') {
         // Straight to a fresh code; the room replies codeTaken in the rare case it's in use.
-        // Use the pre-warmed connection if it's ready, which skips the slowest part.
+        // Use the pre-warmed connection, even if it's still opening: that beats starting another.
         codeTries.current = 0
         setPending('host')
-        const ready = warm.current?.ws.readyState === WebSocket.OPEN ? warm.current : null
+        const state = warm.current?.ws.readyState
+        const ready = state === WebSocket.OPEN || state === WebSocket.CONNECTING ? warm.current : null
         warm.current = null
         if (ready) connect(ready.code, msg, ready.ws)
         else connect(randomCode(), msg)
