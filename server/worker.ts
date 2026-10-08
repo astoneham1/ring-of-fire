@@ -273,6 +273,9 @@ export class RoomDO extends DurableObject<Env> {
       case 'done':
         room.done(playerId)
         break
+      case 'undoDone':
+        room.undoDone(playerId)
+        break
       case 'startTimer':
         room.startTimer(playerId)
         break

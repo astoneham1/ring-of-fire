@@ -17,6 +17,8 @@ export const MAX_PLAYERS = 16
 const MAX_NAME = 20
 const MAX_RULE_TEXT = 140
 const HISTORY_LIMIT = 20
+/** How long after Done the card can be brought back. */
+const UNDO_MS = 5000
 
 /** A rule violation the player should be told about. */
 export class GameError extends Error {}
@@ -76,6 +78,7 @@ export class Room {
     const room: Room = Object.create(Room.prototype)
     // Rooms saved by older versions may be missing newer fields.
     snapshot.state.kicked ??= []
+    snapshot.state.lastDone ??= null
     Object.assign(room, { state: snapshot.state, deck: snapshot.deck, tokens: new Map(snapshot.tokens) })
     return room
   }
@@ -105,6 +108,7 @@ export class Room {
       history: [],
       endReason: null,
       kicked: [],
+      lastDone: null,
     }
     this.state.cup.total = this.cupTotal()
   }
@@ -175,6 +179,7 @@ export class Room {
       if (s.turnId === playerId) s.turnId = s.players[(idx + 1) % s.players.length].id
     }
 
+    s.lastDone = null
     s.players.splice(idx, 1)
     for (const [token, id] of this.tokens) if (id === playerId) this.tokens.delete(token)
     s.mateGroups = s.mateGroups.map((g) => g.filter((id) => id !== playerId)).filter((g) => g.length > 1)
@@ -249,6 +254,7 @@ export class Room {
     if (actorId !== s.turnId) fail("It's not your turn")
     if (s.current) fail('Finish the current card first')
     if (!Number.isInteger(slot) || slot < 0 || slot >= DECK_SIZE || s.taken[slot]) fail('That card is gone')
+    s.lastDone = null
 
     const drawerId = s.turnId!
     const card = this.deck[slot]
@@ -367,6 +373,7 @@ export class Room {
     const s = this.state
     s.phase = 'finished'
     s.endReason = reason
+    s.lastDone = null
     s.current = null
     s.turnId = null
   }
@@ -394,7 +401,23 @@ export class Room {
     if (!draw) fail('Draw a card first')
     if (actorId !== draw.playerId) fail("It's not your turn")
     if (draw.awaitingChoice) fail(getRule(draw.ruleId).action.kind === 'writeRule' ? 'Make your rule first' : 'Make your pick first')
+    const finished = { ...draw }
     this.endTurn()
+    // A slip of the finger shouldn't skip past the card (but the last card ends the game, so no undo there).
+    if (this.state.phase === 'playing') this.state.lastDone = { draw: finished, until: Date.now() + UNDO_MS }
+  }
+
+  /** Brings back the card that was just finished with Done, if nothing has happened since. */
+  undoDone(actorId: string) {
+    this.requirePhase('playing')
+    const s = this.state
+    const last = s.lastDone
+    if (!last || Date.now() > last.until || s.current) fail('Too late to undo')
+    if (actorId !== last.draw.playerId && actorId !== s.hostId) fail('Only the drawer or the host can undo')
+    if (s.history[0]?.slot === last.draw.slot) s.history.shift()
+    s.current = last.draw
+    s.turnId = last.draw.playerId
+    s.lastDone = null
   }
 
   /** Host override for a stuck turn: skips it whether or not a card has been drawn. */
@@ -402,6 +425,7 @@ export class Room {
     this.requireHost(actorId)
     this.requirePhase('playing')
     if (this.state.turnId === actorId) fail("It's your turn. Just play it")
+    this.state.lastDone = null
     this.endTurn()
   }
 
@@ -433,6 +457,7 @@ export class Room {
     s.cup = { drawn: 0, total: this.cupTotal() }
     s.history = []
     s.endReason = null
+    s.lastDone = null
     // Anyone who dropped out during the last game gets cleared from the lobby.
     for (const p of s.players.filter((p) => !p.connected)) this.remove(p.id)
   }

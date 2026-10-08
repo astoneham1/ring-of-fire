@@ -18,7 +18,9 @@ interface Props {
 }
 
 /** `fly`: the card was just drawn, so animate it out of the ring rather than flipping in place. */
-export function DrawSheet({ state, draw, you, send, fly = false }: Props & { fly?: boolean }) {
+export function DrawSheet({ state, draw, you, send, fly: flyProp = false }: Props & { fly?: boolean }) {
+  // Decided once when the sheet opens, so a later re-render can't switch animations mid-flight.
+  const [fly] = useState(flyProp)
   const rule = getRule(draw.ruleId)
   const isDrawer = draw.playerId === you
   const isHost = state.hostId === you

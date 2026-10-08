@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { getRule } from '../../shared/rules.ts'
+import { serverNow } from '../lib/useGame.ts'
 import type { Draw, GameState, HistoryEntry, Player } from '../../shared/types.ts'
 import { nameOf, vibrate } from '../lib/players.ts'
 import { Avatar } from './Avatar.tsx'
@@ -311,6 +312,42 @@ export function YouDrink({ pickerName, duration, onDone }: { pickerName: string;
           transition={{ duration: duration / 1000, ease: 'linear' }}
         />
       </motion.div>
+    </motion.div>
+  )
+}
+
+/** A few seconds to take back a Done tapped by mistake. Shown to the drawer and the host. */
+export function UndoDone({ until, drawerName, onUndo }: { until: number; drawerName: string | null; onUndo: () => void }) {
+  const [left] = useState(() => Math.max(0, until - serverNow()))
+  const [gone, setGone] = useState(left === 0)
+  useEffect(() => {
+    const t = setTimeout(() => setGone(true), left)
+    return () => clearTimeout(t)
+  }, [left])
+  if (gone) return null
+
+  return (
+    <motion.div
+      className="safe-bottom pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4"
+      initial={{ y: 40, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 40, opacity: 0 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+    >
+      <div className="pointer-events-auto relative flex w-full max-w-sm items-center gap-3 overflow-hidden rounded-2xl border border-ash bg-char py-2 pr-2 pl-4 shadow-[0_12px_40px_-8px_rgb(0_0_0/0.7)]">
+        <p className="min-w-0 flex-1 truncate text-sm">
+          {drawerName ? `${drawerName} finished their card` : 'Tapped Done by mistake?'}
+        </p>
+        <button type="button" className="btn h-10 shrink-0 bg-gold px-4 text-base text-ink" onClick={onUndo}>
+          Undo
+        </button>
+        <motion.div
+          className="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-gold"
+          initial={{ scaleX: 1 }}
+          animate={{ scaleX: 0 }}
+          transition={{ duration: left / 1000, ease: 'linear' }}
+        />
+      </div>
     </motion.div>
   )
 }

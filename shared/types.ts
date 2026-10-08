@@ -97,6 +97,8 @@ export interface GameState {
   endReason: 'deck' | 'host' | 'players' | null
   /** Players the host removed, so phones can say "removed" rather than "left". */
   kicked: string[]
+  /** The card just finished with Done, which the drawer or host can undo until `until` (server clock). */
+  lastDone: { draw: Draw; until: number } | null
 }
 
 export type ClientMessage =
@@ -116,6 +118,7 @@ export type ClientMessage =
   | { type: 'writeRule'; text: string }
   | { type: 'removeHouseRule'; id: string }
   | { type: 'done' }
+  | { type: 'undoDone' }
   | { type: 'startTimer' }
   | { type: 'skip' }
   | { type: 'endGame' }

@@ -5,7 +5,7 @@ import { RANKS, type GameState } from '../../shared/types.ts'
 import { DrawSheet } from '../components/DrawSheet.tsx'
 import { HostSkip } from '../components/HostSkip.tsx'
 import { SeatPanel, useSeatSelection } from '../components/SeatPanel.tsx'
-import { ConfirmSheet, FinalCup, LastCardFlash, PickAnnouncement, StarterReveal, YouDrink } from '../components/Overlays.tsx'
+import { ConfirmSheet, FinalCup, LastCardFlash, PickAnnouncement, StarterReveal, UndoDone, YouDrink } from '../components/Overlays.tsx'
 import { RankBadge } from '../components/PlayingCard.tsx'
 import { Table } from '../components/Table.tsx'
 import { TableInfo } from '../components/TableInfo.tsx'
@@ -22,8 +22,11 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
   const draw = state.current
   const [showRules, setShowRules] = useState(false)
   const [confirmExit, setConfirmExit] = useState(false)
-  // A card that was already open when this screen appeared (e.g. after reconnecting) doesn't fly in.
-  const openOnArrival = useRef(state.current?.slot)
+  // Only a newly drawn card flies in: not one already open when we arrived (reconnecting), nor an undone one.
+  const shownSlots = useRef(new Set(state.current ? [state.current.slot] : []))
+  useEffect(() => {
+    if (draw) shownSlots.current.add(draw.slot)
+  }, [draw])
   const seats = useSeatSelection(send, state.players)
   const selectedPlayer = state.players.find((p) => p.id === seats.selected)
   // A card coming up takes over the bottom of the screen, so put the seat controls away.
@@ -190,7 +193,7 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
         <TableInfo state={state} you={you} send={send} />
       </section>
 
-      <AnimatePresence>{draw && <DrawSheet key={draw.slot} state={state} draw={draw} you={you} send={send} fly={draw.slot !== openOnArrival.current} />}</AnimatePresence>
+      <AnimatePresence>{draw && <DrawSheet key={draw.slot} state={state} draw={draw} you={you} send={send} fly={!shownSlots.current.has(draw.slot)} />}</AnimatePresence>
 
       <AnimatePresence>
         {draw && finalCupKey && seenFinalCup !== finalCupKey && (
@@ -212,6 +215,17 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
       </AnimatePresence>
 
       <AnimatePresence>{lastCardFlash && <LastCardFlash />}</AnimatePresence>
+
+      <AnimatePresence>
+        {state.lastDone && !draw && (state.lastDone.draw.playerId === you || isHost) && (
+          <UndoDone
+            key={state.lastDone.draw.slot}
+            until={state.lastDone.until}
+            drawerName={state.lastDone.draw.playerId === you ? null : nameOf(state, state.lastDone.draw.playerId)}
+            onUndo={() => send({ type: 'undoDone' })}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {introFor === state.gameId && <StarterReveal state={state} you={you} onDone={() => setIntroFor(null)} />}
