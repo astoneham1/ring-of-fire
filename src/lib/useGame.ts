@@ -29,6 +29,8 @@ export function useGame() {
   const [you, setYou] = useState<string | null>(null)
   const [status, setStatus] = useState<ConnectionStatus>('idle')
   const [notice, setNotice] = useState<Notice | null>(null)
+  /** Set while hosting or joining, until the room answers. */
+  const [pending, setPending] = useState<'host' | 'join' | null>(null)
   // Until the first resume attempt settles we don't know whether to show the home screen.
   const [resuming, setResuming] = useState(() => loadRoomCode() !== null)
 
@@ -53,6 +55,7 @@ export function useGame() {
     wsRef.current = null
     ws?.close()
     setStatus('idle')
+    setPending(null)
   }, [])
 
   /** Opens a socket to a room. `first` is sent as soon as it's open (create, join or resume). */
@@ -80,6 +83,7 @@ export function useGame() {
         if (msg.type === 'state') {
           // We're in: from now on, reconnecting means getting back into this seat.
           firstMsg.current = { type: 'resume', token: deviceToken(), code: msg.state.code }
+          setPending(null)
           clockOffset = msg.now - Date.now()
           setState(msg.state)
           setYou(msg.you)
@@ -158,10 +162,12 @@ export function useGame() {
       if (msg.type === 'create') {
         // Straight to a fresh code; the room replies codeTaken in the rare case it's in use.
         codeTries.current = 0
+        setPending('host')
         connect(randomCode(), msg)
         return
       }
       if (msg.type === 'join') {
+        setPending('join')
         connect(msg.code.toUpperCase().trim(), msg)
         return
       }
@@ -172,7 +178,7 @@ export function useGame() {
     [connect, notify],
   )
 
-  return { state, you, status, notice, resuming, send, notify }
+  return { state, you, status, notice, resuming, pending, send, notify }
 }
 
 export type Send = (msg: ClientMessage) => void

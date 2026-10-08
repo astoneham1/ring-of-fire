@@ -9,7 +9,16 @@ function codeFromUrl(): string {
   return code.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4)
 }
 
-export function Home({ send, notify }: { send: Send; notify: (msg: string) => void }) {
+export function Home({
+  send,
+  notify,
+  pending,
+}: {
+  send: Send
+  notify: (msg: string) => void
+  /** Which button is waiting on the server, if any. */
+  pending: 'host' | 'join' | null
+}) {
   const profile = loadProfile()
   const [name, setName] = useState(profile.name)
   const [gender, setGender] = useState<Gender | null>(profile.gender)
@@ -30,11 +39,13 @@ export function Home({ send, notify }: { send: Send; notify: (msg: string) => vo
   }
 
   const host = () => {
+    if (pending) return
     if (ready()) send({ type: 'create', token: deviceToken(), name, gender: gender!, rules: loadLastRules() })
   }
 
   const join = (e?: FormEvent) => {
     e?.preventDefault()
+    if (pending) return
     if (code.length !== 4) return notify('Game codes are 4 letters')
     if (ready()) send({ type: 'join', token: deviceToken(), code, name, gender: gender! })
   }
@@ -90,8 +101,14 @@ export function Home({ send, notify }: { send: Send; notify: (msg: string) => vo
       <section className="mt-auto space-y-3 pt-6 short:space-y-2 short:pt-4">
         {!joining && (
           <>
-            <button type="button" className="btn-primary w-full" onClick={host}>
-              Host a game
+            <button type="button" className="btn-primary w-full" aria-busy={pending === 'host'} onClick={host}>
+              {pending === 'host' ? (
+                <>
+                  <Spinner /> Setting up…
+                </>
+              ) : (
+                'Host a game'
+              )}
             </button>
             {/* Extra room on top so the button's raised edge doesn't crowd the divider. */}
             <div className="flex items-center gap-3 pt-3 text-xs font-semibold tracking-[0.14em] text-smoke uppercase short:pt-2">
@@ -112,8 +129,8 @@ export function Home({ send, notify }: { send: Send; notify: (msg: string) => vo
             placeholder="Game code"
             onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))}
           />
-          <button type="submit" className={joining ? 'btn-primary' : 'btn-secondary'}>
-            Join
+          <button type="submit" className={joining ? 'btn-primary' : 'btn-secondary'} aria-busy={pending === 'join'}>
+            {pending === 'join' ? <Spinner /> : 'Join'}
           </button>
         </form>
         {joining && (
@@ -123,5 +140,14 @@ export function Home({ send, notify }: { send: Send; notify: (msg: string) => vo
         )}
       </section>
     </main>
+  )
+}
+
+function Spinner() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5 animate-spin" aria-label="Loading">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+      <path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
   )
 }
