@@ -7,6 +7,7 @@ import { RankBadge } from '../components/PlayingCard.tsx'
 import { SeatPanel, useSeatSelection } from '../components/SeatPanel.tsx'
 import { Table } from '../components/Table.tsx'
 import { nameOf } from '../lib/players.ts'
+import { copyText } from '../lib/clipboard.ts'
 import { saveLastRules } from '../lib/storage.ts'
 import type { Send } from '../lib/useGame.ts'
 
@@ -27,8 +28,7 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
     try {
       if (navigator.share) await navigator.share({ title: 'Ring of Fire', text: `Join my game: ${state.code}`, url: link })
       else {
-        await navigator.clipboard.writeText(link)
-        notify('Invite link copied')
+        notify((await copyText(link)) ? 'Invite link copied' : "Couldn't copy the link")
       }
     } catch {
       // Share sheet dismissed.
@@ -40,8 +40,14 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
     <main className="safe-top mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-36">
       <header className="flex items-start justify-between gap-3">
         <div>
-          <span className="label">Game code</span>
-          <div className="font-display text-5xl leading-none font-extrabold tracking-[0.12em] text-gold">{state.code}</div>
+          <span className="label">Game code · tap to copy</span>
+          <button
+            type="button"
+            className="block font-display text-5xl leading-none font-extrabold tracking-[0.12em] text-gold transition active:scale-95"
+            onClick={async () => notify((await copyText(state.code)) ? `Copied ${state.code}` : "Couldn't copy the code")}
+          >
+            {state.code}
+          </button>
         </div>
         <div className="flex gap-2 pt-4">
           <button type="button" className="btn-secondary h-11 px-4 text-base" onClick={() => setShowQr((v) => !v)}>
