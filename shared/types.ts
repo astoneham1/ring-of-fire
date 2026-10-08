@@ -111,6 +111,7 @@ export type ClientMessage =
   | { type: 'resetRules' }
   | { type: 'swapSeats'; a: string; b: string }
   | { type: 'kick'; playerId: string }
+  | { type: 'updateProfile'; name: string; gender: Gender }
   | { type: 'makeHost'; playerId: string }
   | { type: 'start' }
   | { type: 'draw'; slot: number }

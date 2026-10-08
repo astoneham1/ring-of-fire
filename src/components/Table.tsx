@@ -60,6 +60,8 @@ interface TableProps {
   selectedSeat?: string | null
   onSeatTap?: (playerId: string) => void
   showSeats?: boolean
+  /** Show ♂/♀ after each name (in the lobby, so a wrong pick is easy to spot). */
+  showGender?: boolean
 }
 
 export function Table({
@@ -76,6 +78,7 @@ export function Table({
   selectedSeat,
   onSeatTap,
   showSeats = true,
+  showGender = false,
 }: TableProps) {
   const ref = useRef<HTMLDivElement>(null)
 
@@ -222,6 +225,11 @@ export function Table({
                 }`}
               >
                 {p.id === viewerId ? 'You' : p.name}
+                {showGender && (
+                  <span className="ml-0.5 font-normal text-smoke" aria-label={p.gender === 'boy' ? 'Guy' : 'Girl'}>
+                    {p.gender === 'boy' ? '♂\uFE0E' : '♀\uFE0E'}
+                  </span>
+                )}
               </span>
             </motion.button>
           )

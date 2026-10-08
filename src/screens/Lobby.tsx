@@ -2,18 +2,20 @@ import { AnimatePresence, motion } from 'motion/react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { DEFAULT_RULES, RULE_LIBRARY, getRule, ruleName } from '../../shared/rules.ts'
-import { RANKS, type GameState } from '../../shared/types.ts'
+import { RANKS, type GameState, type Gender } from '../../shared/types.ts'
 import { RankBadge } from '../components/PlayingCard.tsx'
 import { SeatPanel, useSeatSelection } from '../components/SeatPanel.tsx'
 import { Table } from '../components/Table.tsx'
 import { nameOf } from '../lib/players.ts'
 import { copyText } from '../lib/clipboard.ts'
-import { saveLastRules } from '../lib/storage.ts'
+import { saveLastRules, saveProfile } from '../lib/storage.ts'
 import type { Send } from '../lib/useGame.ts'
 
 export function Lobby({ state, you, send, notify }: { state: GameState; you: string; send: Send; notify: (m: string) => void }) {
   const isHost = state.hostId === you
   const seats = useSeatSelection(send, state.players)
+  const me = state.players.find((p) => p.id === you)
+  const [editingProfile, setEditingProfile] = useState(false)
   const selectedPlayer = state.players.find((p) => p.id === seats.selected)
   const [showQr, setShowQr] = useState(false)
   const rulesRef = useRef<HTMLHeadingElement>(null)
@@ -89,14 +91,14 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
         </div>
         <p className="mt-1 text-sm text-smoke">
           {isHost
-            ? 'Tap two people to swap their seats, or tap someone to make them host or remove them.'
+            ? 'Tap two seats to swap, or one for options.'
             : 'The host is arranging the seats.'}
         </p>
         {/* Sized by screen height too, so the house rules peek out above the footer. */}
         <div
           ref={seats.tableRef}
           className="mx-auto mt-1 scroll-mb-48"
-          style={{ width: 'min(100%, 380px, max(260px, calc(100dvh - 380px)))' }}
+          style={{ width: 'min(100%, 380px, max(260px, calc(100dvh - 420px)))' }}
         >
           <Table
             players={state.players}
@@ -104,10 +106,19 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
             hostId={state.hostId}
             seed={state.gameId}
             cupLabel="clockwise ↻"
+            showGender
             selectedSeat={seats.selected}
             onSeatTap={isHost ? seats.tapSeat : undefined}
           />
         </div>
+        {me && (
+          <p className="mt-5 text-center text-sm text-smoke">
+            You're <span className="font-semibold text-cream">{me.name}</span> · {me.gender === 'boy' ? 'Guy' : 'Girl'} ·{' '}
+            <button type="button" className="font-semibold text-ember" onClick={() => setEditingProfile(true)}>
+              Change
+            </button>
+          </p>
+        )}
       </section>
 
       <section className="mt-6">
@@ -164,6 +175,21 @@ export function Lobby({ state, you, send, notify }: { state: GameState; you: str
           </p>
         )}
       </section>
+
+      <AnimatePresence>
+        {editingProfile && me && (
+          <ProfileSheet
+            name={me.name}
+            gender={me.gender}
+            onSave={(name, gender) => {
+              send({ type: 'updateProfile', name, gender })
+              saveProfile({ name, gender })
+              setEditingProfile(false)
+            }}
+            onClose={() => setEditingProfile(false)}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {selectedPlayer && (
@@ -259,5 +285,72 @@ function DuplicateNote({ ranks }: { ranks: string[] }) {
       </svg>
       Also on {ranks.join(', ')}
     </p>
+  )
+}
+
+/** Change your own name or gender without leaving and rejoining. */
+function ProfileSheet({
+  name: initialName,
+  gender: initialGender,
+  onSave,
+  onClose,
+}: {
+  name: string
+  gender: Gender
+  onSave: (name: string, gender: Gender) => void
+  onClose: () => void
+}) {
+  const [name, setName] = useState(initialName)
+  const [gender, setGender] = useState(initialGender)
+  return (
+    <motion.div
+      className="fixed inset-0 z-[45] flex flex-col justify-end bg-ink/70 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.form
+        className="safe-bottom mx-auto w-full max-w-md rounded-t-[32px] border-t border-ash bg-coal px-5 pt-6"
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 260, damping: 30 }}
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (name.trim()) onSave(name.trim(), gender)
+        }}
+      >
+        <h2 className="font-display text-2xl font-bold">Your details</h2>
+        <label className="mt-4 block">
+          <span className="label mb-1.5 block">Your name</span>
+          <input className="field" value={name} maxLength={20} autoComplete="nickname" onChange={(e) => setName(e.target.value)} />
+        </label>
+        <span className="label mt-3 mb-1.5 block">Your gender</span>
+        <div className="grid grid-cols-2 gap-2">
+          {(['boy', 'girl'] as const).map((g) => (
+            <button
+              key={g}
+              type="button"
+              onClick={() => setGender(g)}
+              className={`h-12 rounded-2xl border font-semibold transition ${
+                gender === g ? 'border-ember bg-ember/15 text-cream' : 'border-ash bg-coal text-smoke'
+              }`}
+            >
+              {g === 'boy' ? 'Guy' : 'Girl'}
+            </button>
+          ))}
+        </div>
+        <div className="mt-6 flex flex-col gap-1">
+          <button type="submit" className="btn-primary w-full" disabled={!name.trim()}>
+            Save
+          </button>
+          <button type="button" className="btn-ghost w-full" onClick={onClose}>
+            Cancel
+          </button>
+        </div>
+      </motion.form>
+    </motion.div>
   )
 }

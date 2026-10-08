@@ -243,6 +243,9 @@ export class RoomDO extends DurableObject<Env> {
           if (other.playerId === msg.playerId) this.drop(other.ws, 'The host removed you from the game')
         }
         break
+      case 'updateProfile':
+        room.updateProfile(playerId, msg.name, msg.gender)
+        break
       case 'makeHost':
         room.makeHost(playerId, msg.playerId)
         break

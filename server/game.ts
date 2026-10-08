@@ -162,6 +162,20 @@ export class Room {
     return player
   }
 
+  /** Fixes your own name or gender before the game starts (the 5s and 6s depend on it). */
+  updateProfile(actorId: string, name: string, gender: Gender) {
+    this.requirePhase('lobby')
+    const me = this.player(actorId)
+    if (!me) fail('Player not found')
+    const clean = cleanName(name)
+    if (this.state.players.some((p) => p.id !== actorId && p.name.toLowerCase() === clean.toLowerCase())) {
+      fail(`Someone called ${clean} is already in. Try a nickname`)
+    }
+    if (gender !== 'boy' && gender !== 'girl') fail('Pick guy or girl')
+    me.name = clean
+    me.gender = gender
+  }
+
   setConnected(playerId: string, connected: boolean) {
     const p = this.player(playerId)
     if (p) p.connected = connected
