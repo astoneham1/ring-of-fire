@@ -22,6 +22,8 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
   const draw = state.current
   const [showRules, setShowRules] = useState(false)
   const [confirmExit, setConfirmExit] = useState(false)
+  // A card that was already open when this screen appeared (e.g. after reconnecting) doesn't fly in.
+  const openOnArrival = useRef(state.current?.slot)
   const seats = useSeatSelection(send, state.players)
   const selectedPlayer = state.players.find((p) => p.id === seats.selected)
   // A card coming up takes over the bottom of the screen, so put the seat controls away.
@@ -159,7 +161,7 @@ export function Game({ state, you, send }: { state: GameState; you: string; send
         <TableInfo state={state} you={you} send={send} />
       </section>
 
-      <AnimatePresence>{draw && <DrawSheet key={draw.slot} state={state} draw={draw} you={you} send={send} />}</AnimatePresence>
+      <AnimatePresence>{draw && <DrawSheet key={draw.slot} state={state} draw={draw} you={you} send={send} fly={draw.slot !== openOnArrival.current} />}</AnimatePresence>
 
       <AnimatePresence>
         {draw && finalCupKey && seenFinalCup !== finalCupKey && (

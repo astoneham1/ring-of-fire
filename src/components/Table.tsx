@@ -7,13 +7,14 @@ import { Cup } from './Cup.tsx'
 
 // All sizes are fractions of the table's width so it scales to any phone.
 const CARD_RADIUS = 0.27
-const CARD_WIDTH = 0.05
+/** Ring card width as a fraction of the table's width. */
+export const CARD_WIDTH = 0.05
 const SEAT_RADIUS = 0.425
 const AVATAR = 0.1
 const CUP_SIZE = 0.23
 const POINTER_RADIUS = 0.155
 
-interface Slot {
+export interface Slot {
   index: number
   x: number
   y: number
@@ -23,6 +24,20 @@ interface Slot {
 function polar(radius: number, degrees: number) {
   const rad = (degrees * Math.PI) / 180
   return { x: 50 + radius * 100 * Math.cos(rad), y: 50 + radius * 100 * Math.sin(rad) }
+}
+
+/**
+ * Where each face-down card sits in the ring, scattered a little like a real ring on a sticky
+ * table. Seeded by the game so every phone lays it out identically.
+ */
+export function ringSlots(seed: number): Slot[] {
+  const rand = seeded(seed * 7919)
+  return Array.from({ length: DECK_SIZE }, (_, index) => {
+    const angle = -90 + (index * 360) / DECK_SIZE + (rand() - 0.5) * 3
+    const radius = CARD_RADIUS + (rand() - 0.5) * 0.025
+    const { x, y } = polar(radius, angle)
+    return { index, x, y, rotate: angle + 90 + (rand() - 0.5) * 26 }
+  })
 }
 
 /** Seat angle in screen degrees. The viewer sits at the bottom; play runs clockwise from there. */
@@ -64,16 +79,7 @@ export function Table({
 }: TableProps) {
   const ref = useRef<HTMLDivElement>(null)
 
-  // Scatter the cards a little, like a real ring on a sticky table.
-  const slots = useMemo<Slot[]>(() => {
-    const rand = seeded(seed * 7919)
-    return Array.from({ length: DECK_SIZE }, (_, index) => {
-      const angle = -90 + (index * 360) / DECK_SIZE + (rand() - 0.5) * 3
-      const radius = CARD_RADIUS + (rand() - 0.5) * 0.025
-      const { x, y } = polar(radius, angle)
-      return { index, x, y, rotate: angle + 90 + (rand() - 0.5) * 26 }
-    })
-  }, [seed])
+  const slots = useMemo(() => ringSlots(seed), [seed])
 
   const viewerIndex = Math.max(0, players.findIndex((p) => p.id === viewerId))
   const turnIndex = players.findIndex((p) => p.id === turnId)
@@ -114,6 +120,8 @@ export function Table({
       ref={ref}
       className="relative aspect-square w-full select-none"
       style={{ containerType: 'inline-size' }}
+      // Lets a drawn card's flight start from its exact spot in the ring.
+      data-card-ring={taken ? '' : undefined}
       onClick={handleTap}
     >
       {/* Glow under the ring when it's your go. */}
@@ -144,7 +152,8 @@ export function Table({
               style={{ width: `${CARD_WIDTH * 100}%`, translate: '-50% -50%' }}
               initial={false}
               animate={{ left: `${s.x}%`, top: `${s.y}%`, rotate: s.rotate, opacity: 1, scale: 1 }}
-              exit={{ left: '50%', top: '50%', rotate: 0, scale: 2.4, opacity: 0, zIndex: 20 }}
+              // The drawn card's flight (in the draw sheet) takes over from here, so just vanish.
+              exit={{ opacity: 0, transition: { duration: 0.05 } }}
               transition={{ duration: 0.45, ease: [0.3, 0.7, 0.2, 1] }}
             />
           ))}
